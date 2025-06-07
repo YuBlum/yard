@@ -13,5 +13,5 @@ for i in ./src/*.c; do
 done
 
 rm -f ./$OUT
-cc -Wall -Werror -Wpedantic -std=c99 $SRC $LIBS -o $OUT
+cc -Wall -Wextra -Werror -Wpedantic -std=c99 $SRC $LIBS -o $OUT
 ./$OUT
