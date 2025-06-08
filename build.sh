@@ -1,11 +1,13 @@
 #!/bin/sh
 
-OUT="jarpg"
+OUT="yard"
 SRC=""
 LIBS="
 vendor/glad/glad.o -I./vendor/glad/include
 -lglfw
+-lm
 "
+DEF="-DDEV"
 
 for i in ./src/*.c; do
   [ -f "$i" ] || break
@@ -13,5 +15,5 @@ for i in ./src/*.c; do
 done
 
 rm -f ./$OUT
-cc -Wall -Wextra -Werror -Wpedantic -std=c99 $SRC $LIBS -o $OUT
+cc -Wall -Wextra -Werror -Wpedantic -std=c11 $DEF $SRC $LIBS -o $OUT
 ./$OUT
