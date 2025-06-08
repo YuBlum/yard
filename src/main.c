@@ -1,7 +1,6 @@
-#include "include/arena.h"
-#include "include/window.h"
-#include "include/renderer.h"
-#include <glad/glad.h>
+#include "yard/arena.h"
+#include "yard/window.h"
+#include "yard/renderer.h"
 
 #define WINDOW_W 640
 #define WINDOW_H 480

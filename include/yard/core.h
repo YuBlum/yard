@@ -1,6 +1,10 @@
 #ifndef __CORE_H__
 #define __CORE_H__
 
+#include <stddef.h>
+#include <stdint.h>
+#include <stdbool.h>
+
 #if DEV
 #  include <stdio.h>
 #  define log_info(msg) fprintf(stderr, "\x1b[1;32minfo: " msg "\x1b[0m\n")

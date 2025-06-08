@@ -1,6 +1,6 @@
 #include <GLFW/glfw3.h>
-#include "include/core.h"
-#include "include/window.h"
+#include "yard/core.h"
+#include "yard/window.h"
 
 struct window {
   GLFWwindow *handle;
@@ -12,6 +12,7 @@ static struct window window;
 
 bool
 window_make(uint32_t width, uint32_t height) {
+  log_info("making window...");
   if (!glfwInit()) {
     log_error("couldn't initialize glfw");
     return false;
@@ -35,6 +36,7 @@ window_make(uint32_t width, uint32_t height) {
   } else {
     log_warn("couldn't center window");
   }
+  log_info("window creation complete!");
   return true;
 }
 

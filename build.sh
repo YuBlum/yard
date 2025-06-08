@@ -1,19 +1,19 @@
 #!/bin/sh
 
 OUT="yard"
-SRC=""
+FLAGS="-Wall -Wextra -Werror -Wpedantic -std=c11"
+DEF="-DDEV"
+SRC=$(find ./src/ -type f -name "*.c" | tr '\n' ' ')
 LIBS="
-vendor/glad/glad.o -I./vendor/glad/include
+vendor/glad/glad.o
 -lglfw
 -lm
 "
-DEF="-DDEV"
-
-for i in ./src/*.c; do
-  [ -f "$i" ] || break
-  SRC="$SRC $i"
-done
+INCS="
+-I./vendor/glad/include
+-I./include
+"
 
 rm -f ./$OUT
-cc -Wall -Wextra -Werror -Wpedantic -std=c11 $DEF $SRC $LIBS -o $OUT
+cc $FLAGS $DEF $LIBS $INCS $SRC -o $OUT
 ./$OUT
