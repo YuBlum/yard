@@ -22,7 +22,7 @@ window_make(uint32_t width, uint32_t height) {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  window.handle = glfwCreateWindow(width, height, "Yet Another Roguelike-ish Dungeon crawler", 0, 0);
+  window.handle = glfwCreateWindow(width, height, "Yet Another Roguelike-ish Dungeon", 0, 0);
   if (!window.handle) {
     log_error("couldn't create window handle");
     return false;
