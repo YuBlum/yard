@@ -68,7 +68,7 @@ window_close(void) {
 
 bool
 window_is_running(void) {
-  memcpy(window.keys, window.pkeys, sizeof (bool) * KEY_AMOUNT);
+  memcpy(window.pkeys, window.keys, sizeof (bool) * KEY_AMOUNT);
   glfwPollEvents();
   glfwSwapBuffers(window.handle);
   return !glfwWindowShouldClose(window.handle);

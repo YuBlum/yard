@@ -4,11 +4,9 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "yard/core.h"
-#include "yard/math.h"
 #include "yard/string.h"
 #include "yard/shaders.h"
-
-struct color { float r, g, b; };
+#include "yard/renderer.h"
 
 struct vertex {
   struct v2    position;
@@ -29,7 +27,6 @@ struct renderer {
   struct quad quads[QUAD_CAPACITY];
   size_t quads_amount;
   uint32_t sh_default;
-  uint32_t vao, vbo, ibo;
 };
 
 static struct renderer renderer;
@@ -146,22 +143,14 @@ renderer_make(struct arena *arena) {
     indices[i++] = j + 0;
     j += 4;
   }
-  struct color color = { 0.8f, 0.8f, 0.2f };
-  renderer.quads[0].v[0].position = V2(-0.5f, -0.5f);
-  renderer.quads[0].v[1].position = V2(+0.5f, -0.5f);
-  renderer.quads[0].v[2].position = V2(+0.5f, +0.5f);
-  renderer.quads[0].v[3].position = V2(-0.5f, +0.5f);
-  renderer.quads[0].v[0].blendcol = color;
-  renderer.quads[0].v[1].blendcol = color;
-  renderer.quads[0].v[2].blendcol = color;
-  renderer.quads[0].v[3].blendcol = color;
-  glGenVertexArrays(1, &renderer.vao);
-  glGenBuffers(1, &renderer.vbo);
-  glGenBuffers(1, &renderer.ibo);
-  glBindVertexArray(renderer.vao);
-  glBindBuffer(GL_ARRAY_BUFFER, renderer.vbo);
-  glBufferData(GL_ARRAY_BUFFER, sizeof (struct quad) * QUAD_CAPACITY, renderer.quads, GL_STATIC_DRAW);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer.ibo);
+  uint32_t vao, vbo, ibo;
+  glGenVertexArrays(1, &vao);
+  glGenBuffers(1, &vbo);
+  glGenBuffers(1, &ibo);
+  glBindVertexArray(vao);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glBufferData(GL_ARRAY_BUFFER, sizeof (struct quad) * QUAD_CAPACITY, 0, GL_DYNAMIC_DRAW);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (uint32_t) * INDEX_CAPACITY, indices, GL_STATIC_DRAW);
   glEnableVertexAttribArray(0);
   glEnableVertexAttribArray(1);
@@ -176,10 +165,35 @@ renderer_make(struct arena *arena) {
   return true;
 }
 
-bool
+void
 renderer_submit(void) {
   glClearColor(0.8f, 0.2f, 0.2f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-  return true;
+  glBufferSubData(GL_ARRAY_BUFFER, 0, renderer.quads_amount * sizeof (struct quad), renderer.quads);
+  glDrawElements(GL_TRIANGLES, renderer.quads_amount*6, GL_UNSIGNED_INT, 0);
+  renderer.quads_amount = 0;
+}
+
+void
+renderer_quad(struct v2 position, struct v2 size, struct color color, float depth) {
+#if DEV
+  if (renderer.quads_amount >= QUAD_CAPACITY) {
+    log_warnlf("%s: quads ran out of memory. increase QUAD_CAPACITY", __func__);
+    return;
+  }
+#endif
+  struct quad *quad = &renderer.quads[renderer.quads_amount++];
+  size = v2_mul(size, V2(0.5, 0.5));
+  quad->v[0].position = V2(position.x - size.x, position.y - size.y);
+  quad->v[1].position = V2(position.x + size.x, position.y - size.y);
+  quad->v[2].position = V2(position.x + size.x, position.y + size.y);
+  quad->v[3].position = V2(position.x - size.x, position.y + size.y);
+  quad->v[0].blendcol = color;
+  quad->v[1].blendcol = color;
+  quad->v[2].blendcol = color;
+  quad->v[3].blendcol = color;
+  quad->v[0].depth = depth;
+  quad->v[1].depth = depth;
+  quad->v[2].depth = depth;
+  quad->v[3].depth = depth;
 }

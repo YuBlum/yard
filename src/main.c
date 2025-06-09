@@ -15,11 +15,14 @@ main(void) {
   if (!window_make(WINDOW_W, WINDOW_H)) return 1;
   if (!renderer_make(tmp_arena)) return 1;
   arena_clear(tmp_arena);
+  struct v2 p = { 0.0f, 0.0f };
   while (window_is_running()) {
     if (window_is_key_down(K_EXIT)) window_close();
-    if (!renderer_submit()) {
-      log_errorl("couldn't submit render calls");
-    }
+    p.x += (window_is_key_down(K_RIGHT) - window_is_key_down(K_LEFT)) * 0.015f;
+    p.y += (window_is_key_down(K_UP)    - window_is_key_down(K_DOWN)) * 0.015f;
+    renderer_quad(p, V2(0.2f, 0.2f), RGB(0.8f, 0.8f, 0.2f), 0.0f);
+    renderer_quad(V2(0.5f, 0.5f), V2(0.2f, 0.2f), RGB(0.4f, 0.2f, 0.8f), -1.0f);
+    renderer_submit();
     arena_clear(tmp_arena);
   }
   return 0;

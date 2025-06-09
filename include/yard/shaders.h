@@ -28,6 +28,7 @@
 "void\n" \
 "main() {\n" \
 "  f_color = vec4(v_blendcol, 1.0);\n" \
+/*"  if (f_color.a < 0.1) discard;"*/ \
 "}\n")
 
 #endif/*__SHADERS_H__*/
