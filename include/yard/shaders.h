@@ -11,9 +11,11 @@
 "out vec2 v_texcoord;\n" \
 "out vec3 v_blendcol;\n" \
 "\n" \
+"uniform mat4 u_proj;\n" \
+"\n" \
 "void\n" \
 "main() {\n" \
-"  gl_Position = vec4(a_position, a_depth, 1.0);\n" \
+"  gl_Position = u_proj * vec4(a_position, a_depth, 1.0);\n" \
 "  v_texcoord = a_texcoord;\n" \
 "  v_blendcol = a_blendcol;\n" \
 "}\n")
@@ -28,7 +30,7 @@
 "void\n" \
 "main() {\n" \
 "  f_color = vec4(v_blendcol, 1.0);\n" \
-/*"  if (f_color.a < 0.1) discard;"*/ \
+"  if (f_color.a < 0.1) discard;" \
 "}\n")
 
 #endif/*__SHADERS_H__*/

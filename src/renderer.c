@@ -27,9 +27,23 @@ struct renderer {
   struct quad quads[QUAD_CAPACITY];
   size_t quads_amount;
   uint32_t sh_default;
+  int32_t  sh_default_proj;
 };
 
+#define LEFT   (-GAME_W * 0.5f)
+#define RIGHT  (+GAME_W * 0.5f)
+#define BOTTOM (-GAME_H * 0.5f)
+#define TOP    (+GAME_H * 0.5f)
+#define FAR    1000.0f
+#define NEAR   0.0f
+
 static struct renderer renderer;
+static float projection[4*4] = {
+  +2.0f/(RIGHT-LEFT)        , +0.0f                     , +0.0f                 , +0.0f,
+  +0.0f                     , +2.0f/(TOP-BOTTOM)        , +0.0f                 , +0.0f,
+  +0.0f                     , +0.0f                     , -2.0f/(FAR-NEAR)      , +0.0f,
+  -(RIGHT+LEFT)/(RIGHT-LEFT), -(TOP+BOTTOM)/(TOP-BOTTOM), -(FAR+NEAR)/(FAR-NEAR), +1.0f,
+};
 
 #define SHADER_LOG_CAPACITY 512
 
@@ -125,7 +139,15 @@ renderer_make(struct arena *arena) {
     &SH_DEFAULT_FRAG
   );
   if (!renderer.sh_default) return false;
+  renderer.sh_default_proj = glGetUniformLocation(renderer.sh_default, "u_proj");
+#if DEV
+  if (renderer.sh_default_proj < 0) {
+    log_errorl("couldn't get 'u_proj' location from default shader");
+    return false;
+  }
+#endif
   glUseProgram(renderer.sh_default);
+  glUniformMatrix4fv(renderer.sh_default_proj, 1, false, projection);
   log_infol("created default shader");
   glEnable(GL_DEPTH_TEST);
   uint32_t *indices = arena_push_array(arena, true, uint32_t, INDEX_CAPACITY);
@@ -155,7 +177,7 @@ renderer_make(struct arena *arena) {
   glEnableVertexAttribArray(0);
   glEnableVertexAttribArray(1);
   glEnableVertexAttribArray(2);
-  glEnableVertexAttribArray(4);
+  glEnableVertexAttribArray(3);
   glVertexAttribPointer(0, 2, GL_FLOAT, false, sizeof (struct vertex), (void *)offsetof (struct vertex, position));
   glVertexAttribPointer(1, 2, GL_FLOAT, false, sizeof (struct vertex), (void *)offsetof (struct vertex, texcoord));
   glVertexAttribPointer(2, 3, GL_FLOAT, false, sizeof (struct vertex), (void *)offsetof (struct vertex, blendcol));
