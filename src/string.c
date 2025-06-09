@@ -5,18 +5,18 @@ struct str *
 str_make_from_view(struct arena *arena, const struct str_view *view) {
 #if DEV
   if (!arena) {
-    log_errorf("%s: passing invalid arena", __func__);
+    log_errorlf("%s: passing invalid arena", __func__);
     return 0;
   }
   if (!view || !view->data) {
-    log_errorf("%s: passing invalid string view", __func__);
+    log_errorlf("%s: passing invalid string view", __func__);
     return 0;
   }
 #endif
   struct str *str = arena_push(arena, true, sizeof (struct str) + view->length + 1);
   if (!str) {
 #if DEV
-    log_errorf("%s: couldn't create string", __func__);
+    log_errorlf("%s: couldn't make string", __func__);
 #endif
     return 0;
   }
@@ -31,11 +31,11 @@ struct str *
 str_make_from_joint(struct arena *arena, const struct str_joint *joint) {
 #if DEV
   if (!arena) {
-    log_errorf("%s: passing invalid arena", __func__);
+    log_errorlf("%s: passing invalid arena", __func__);
     return 0;
   }
   if (!joint) {
-    log_errorf("%s: passing invalid string joint", __func__);
+    log_errorlf("%s: passing invalid string joint", __func__);
     return 0;
   }
 #endif
@@ -43,7 +43,7 @@ str_make_from_joint(struct arena *arena, const struct str_joint *joint) {
   for (size_t i = 0; i < joint->amount; i++) {
 #if DEV
     if (!joint->views[i].data) {
-      log_errorf("%s: passing invalid view inside string joint", __func__);
+      log_errorlf("%s: passing invalid view inside string joint", __func__);
       return 0;
     }
 #endif
@@ -52,7 +52,7 @@ str_make_from_joint(struct arena *arena, const struct str_joint *joint) {
   struct str *str = arena_push(arena, true, sizeof (struct str) + length + 1);
   if (!str) {
 #if DEV
-    log_errorf("%s: couldn't create string", __func__);
+    log_errorlf("%s: couldn't make string", __func__);
 #endif
     return 0;
   }
@@ -71,23 +71,23 @@ bool
 str_view_make_from_str(struct str_view *out, const struct str *str, size_t start, size_t end) {
 #if DEV
   if (!out) {
-    log_errorf("%s: invalid string view output", __func__);
+    log_errorlf("%s: invalid string view output", __func__);
     return false;
   }
   if (!str) {
-    log_errorf("%s: invalid string input", __func__);
+    log_errorlf("%s: invalid string input", __func__);
     return false;
   }
   if (start >= str->length) {
-    log_errorf("%s: 'start' index is greater than or equal to input string length", __func__);
+    log_errorlf("%s: 'start' index is greater than or equal to input string length", __func__);
     return false;
   }
   if (end && end < start) {
-    log_errorf("%s: 'end' index is less than 'start' index", __func__);
+    log_errorlf("%s: 'end' index is less than 'start' index", __func__);
     return false;
   }
   if (end > str->length) {
-    log_errorf("%s: 'end' index is greater than input string length", __func__);
+    log_errorlf("%s: 'end' index is greater than input string length", __func__);
     return false;
   }
 #endif

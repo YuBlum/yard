@@ -30,34 +30,34 @@ key_callback(GLFWwindow* _window, int key, int _scancode, int action, int _mods)
 
 bool
 window_make(uint32_t width, uint32_t height) {
-  log_info("making window...");
+  log_infol("making window...");
   if (!glfwInit()) {
-    log_error("couldn't initialize glfw");
+    log_errorl("couldn't initialize glfw");
     return false;
   }
-  log_info("glfw initialized");
+  log_infol("glfw initialized");
   glfwWindowHint(GLFW_RESIZABLE, false);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   window.handle = glfwCreateWindow(width, height, "Yet Another Roguelike-ish Dungeon", 0, 0);
   if (!window.handle) {
-    log_error("couldn't create window handle");
+    log_errorl("couldn't make window handle");
     return false;
   }
   glfwMakeContextCurrent(window.handle);
-  log_infof("window created with %d %d dimensions", width, height);
+  log_infolf("window created with %d %d dimensions", width, height);
   const GLFWvidmode *vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
   if (vidmode) {
     glfwSetWindowPos(window.handle, vidmode->width / 2 - width / 2, vidmode->height / 2 - height / 2);
-    log_info("window centered");
+    log_infol("window centered");
   } else {
-    log_warn("couldn't center window");
+    log_warnl("couldn't center window");
   }
   (void)memset(window.keys, false, sizeof (bool) * KEY_AMOUNT);
   (void)glfwSetKeyCallback(window.handle, key_callback);
-  log_info("window input setup");
-  log_info("window creation complete!");
+  log_infol("window input setup");
+  log_infol("window creation complete!");
   return true;
 }
 
@@ -78,7 +78,7 @@ bool
 window_is_key_press(enum key key) {
 #if DEV
   if (key < KEY_FIRST || key >= KEY_AMOUNT) {
-    log_errorf("%s: passing invalid key", __func__);
+    log_errorlf("%s: passing invalid key", __func__);
     return false;
   }
 #endif
@@ -89,7 +89,7 @@ bool
 window_is_key_down(enum key key) {
 #if DEV
   if (key < KEY_FIRST || key >= KEY_AMOUNT) {
-    log_errorf("%s: passing invalid key", __func__);
+    log_errorlf("%s: passing invalid key", __func__);
     return false;
   }
 #endif
@@ -100,7 +100,7 @@ bool
 window_is_key_up(enum key key) {
 #if DEV
   if (key < KEY_FIRST || key >= KEY_AMOUNT) {
-    log_errorf("%s: passing invalid key", __func__);
+    log_errorlf("%s: passing invalid key", __func__);
     return false;
   }
 #endif

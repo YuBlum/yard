@@ -4,9 +4,9 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "yard/core.h"
-#include "yard/arena.h"
 #include "yard/math.h"
 #include "yard/string.h"
+#include "yard/shaders.h"
 
 struct color { float r, g, b; };
 
@@ -20,28 +20,20 @@ struct quad {
   struct vertex v[4];
 };
 
+#define QUAD_CAPACITY 10000
+#define INDEX_CAPACITY (QUAD_CAPACITY*6)
+#define VERTEX_CAPACITY (QUAD_CAPACITY*4)
+
 struct renderer {
-  struct arena *quad_arena;
-  struct quad *quads;
+  struct quad quads[QUAD_CAPACITY];
   size_t quads_amount;
   uint32_t sh_default;
+  uint32_t vao, vbo, ibo;
 };
 
 static struct renderer renderer;
 
-static bool
-renderer_make_quads_buffer(void) {
-  renderer.quad_arena = arena_make_typed(0, struct quad);
-  if (!renderer.quad_arena) {
-    log_error("couldn't create renderer quad arena");
-    return false;
-  }
-  renderer.quads = arena_get_base(renderer.quad_arena);
-  renderer.quads_amount = 0;
-  return true;
-}
-
-#define SHADER_LOG_CAPACITY 4096
+#define SHADER_LOG_CAPACITY 512
 
 static uint32_t
 shader_make(GLenum type, const struct str_view *src) {
@@ -55,14 +47,14 @@ shader_make(GLenum type, const struct str_view *src) {
       shader_str = "fragment";
     } break;
     default: {
-      log_errorf("%s: unknown shader type", __func__);
+      log_errorlf("%s: unknown shader type", __func__);
 #endif
       return 0;
     } break;
   }
   uint32_t shader = glCreateShader(type);
   if (!shader) {
-    log_errorf("%s: couldn't create shader", __func__);
+    log_errorlf("%s: couldn't make shader", __func__);
     return 0;
   }
 #if DEV
@@ -72,6 +64,11 @@ shader_make(GLenum type, const struct str_view *src) {
   int status;
   glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
   if (!status) {
+    int log_length;
+    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &log_length);
+    if (log_length > SHADER_LOG_CAPACITY) {
+      log_warnlf("%s: shader compile error will not be fully displayed. increase SHADER_LOG_CAPACITY", __func__);
+    }
     char log[SHADER_LOG_CAPACITY];
     glGetShaderInfoLog(shader, SHADER_LOG_CAPACITY, 0, log);
     log_errorf("%s shader: %s", shader_str, log);
@@ -82,20 +79,20 @@ shader_make(GLenum type, const struct str_view *src) {
   return shader;
 }
 
-static inline uint32_t
+static uint32_t
 shader_program_make(const struct str_view *vert_src, const struct str_view *frag_src) {
-  log_infof("%s: starting shader program creation...", __func__);
+  log_infolf("%s: starting shader program creation...", __func__);
   uint32_t program = glCreateProgram();
   if (!program) {
-    log_errorf("%s: couldn't create shader program", __func__);
+    log_errorlf("%s: couldn't make shader program", __func__);
     return 0;
   }
   uint32_t vert = shader_make(GL_VERTEX_SHADER, vert_src);
   if (!vert) return 0;
-  log_infof("%s: compiled vertex shader", __func__);
+  log_infolf("%s: compiled vertex shader", __func__);
   uint32_t frag = shader_make(GL_FRAGMENT_SHADER, frag_src);
   if (!frag) return 0;
-  log_infof("%s: compiled fragment shader", __func__);
+  log_infolf("%s: compiled fragment shader", __func__);
   glAttachShader(program, vert);
   glAttachShader(program, frag);
   glLinkProgram(program);
@@ -105,6 +102,11 @@ shader_program_make(const struct str_view *vert_src, const struct str_view *frag
   int status;
   glGetProgramiv(program, GL_LINK_STATUS, &status);
   if (!status) {
+    int log_length;
+    glGetProgramiv(program, GL_INFO_LOG_LENGTH, &log_length);
+    if (log_length > SHADER_LOG_CAPACITY) {
+      log_warnlf("%s: shader linking error will not be fully displayed. increase SHADER_LOG_CAPACITY", __func__);
+    }
     char log[SHADER_LOG_CAPACITY];
     glGetProgramInfoLog(program, SHADER_LOG_CAPACITY, 0, log);
     log_errorf("shader program linking: %s", log);
@@ -115,47 +117,55 @@ shader_program_make(const struct str_view *vert_src, const struct str_view *frag
   return program;
 }
 
-#define SH_DEFAULT_VERT str_view_make_from_lit( \
-"#version 460 core\n" \
-"layout (location=0) in vec2 a_position;\n" \
-"layout (location=1) in vec2 a_texcoord;\n" \
-"layout (location=2) in vec3 a_blendcol;\n" \
-"\n" \
-"out vec2 v_texcoord;\n" \
-"out vec3 v_blendcol;\n" \
-"\n" \
-"void\n" \
-"main() {\n" \
-"  gl_Position = vec4(a_position, 0.0, 1.0);\n" \
-"  v_texcoord = a_texcoord;\n" \
-"  v_blendcol = a_blendcol;\n" \
-"}\n")
-
-#define SH_DEFAULT_FRAG str_view_make_from_lit( \
-"#version 460 core\n" \
-"in vec2 v_texcoord;\n" \
-"in vec3 v_blendcol;\n" \
-"\n" \
-"out vec4 f_color;\n" \
-"\n" \
-"void\n" \
-"main() {\n" \
-"  f_color = vec4(v_blendcol, 1.0);\n" \
-"}\n")
-
 bool
-renderer_make(void) {
-  log_info("making renderer...");
+renderer_make(struct arena *arena) {
+  log_infol("making renderer...");
   gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-  log_info("loaded opengl functions");
-  if (!renderer_make_quads_buffer()) return false;
-  log_info("created quads buffer");
+  log_infol("loaded opengl functions");
   renderer.sh_default = shader_program_make(
     &SH_DEFAULT_VERT,
     &SH_DEFAULT_FRAG
   );
   if (!renderer.sh_default) return false;
-  log_info("created default shader");
-  log_info("renderer creation complete!");
+  log_infol("created default shader");
+  glEnable(GL_DEPTH_TEST);
+  uint32_t *indices = arena_push_array(arena, true, uint32_t, INDEX_CAPACITY);
+  if (!indices) {
+    log_errorl("couldn't make indices buffer");
+    return false;
+  }
+  uint32_t i = 0, j = 0;
+  while (i < INDEX_CAPACITY) {
+    indices[i++] = j + 0;
+    indices[i++] = j + 1;
+    indices[i++] = j + 2;
+    indices[i++] = j + 2;
+    indices[i++] = j + 3;
+    indices[i++] = j + 0;
+    j += 4;
+  }
+  glGenVertexArrays(1, &renderer.vao);
+  glGenBuffers(1, &renderer.vbo);
+  glGenBuffers(1, &renderer.ibo);
+  glBindVertexArray(renderer.vao);
+  glBindBuffer(GL_ARRAY_BUFFER, renderer.vao);
+  glBufferData(GL_ARRAY_BUFFER, sizeof (struct quad) * QUAD_CAPACITY, 0, GL_DYNAMIC_DRAW);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer.vao);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (uint32_t) * INDEX_CAPACITY, indices, GL_STATIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glEnableVertexAttribArray(1);
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(0, 2, GL_FLOAT, false, sizeof (struct vertex), offsetof (struct vertex, position));
+  glVertexAttribPointer(1, 2, GL_FLOAT, false, sizeof (struct vertex), offsetof (struct vertex, position));
+  glVertexAttribPointer(2, 3, GL_FLOAT, false, sizeof (struct vertex), offsetof (struct vertex, position));
+  log_infol("vao, vbo and ibo created successfully");
+  log_infol("renderer creation complete!");
+  return true;
+}
+
+bool
+renderer_submit(void) {
+  glClearColor(0.8f, 0.2f, 0.2f, 1.0f);
+  glClear(GL_COLOR_BUFFER_BIT);
   return true;
 }
