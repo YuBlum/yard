@@ -3,6 +3,7 @@
 #endif
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <stb_image.h>
 #include "yard/core.h"
 #include "yard/string.h"
 #include "yard/shaders.h"
@@ -28,6 +29,7 @@ struct renderer {
   size_t quads_amount;
   uint32_t sh_default;
   int32_t  sh_default_proj;
+  uint32_t texture_atlas;
 };
 
 #define LEFT   (-GAME_W * 0.5f)
@@ -41,7 +43,7 @@ static struct renderer renderer;
 static float projection[4*4] = {
   +2.0f/(RIGHT-LEFT)        , +0.0f                     , +0.0f                 , +0.0f,
   +0.0f                     , +2.0f/(TOP-BOTTOM)        , +0.0f                 , +0.0f,
-  +0.0f                     , +0.0f                     , -2.0f/(FAR-NEAR)      , +0.0f,
+  +0.0f                     , +0.0f                     , +2.0f/(FAR-NEAR)      , +0.0f,
   -(RIGHT+LEFT)/(RIGHT-LEFT), -(TOP+BOTTOM)/(TOP-BOTTOM), -(FAR+NEAR)/(FAR-NEAR), +1.0f,
 };
 
@@ -60,19 +62,19 @@ shader_make(GLenum type, const struct str_view *src) {
     } break;
     default: {
       log_errorlf("%s: unknown shader type", __func__);
-#endif
       return 0;
     } break;
   }
+#endif
   uint32_t shader = glCreateShader(type);
   if (!shader) {
     log_errorlf("%s: couldn't make shader", __func__);
     return 0;
   }
-#if DEV
   const int len = src->length;
   glShaderSource(shader, 1, &src->data, &len);
   glCompileShader(shader);
+#if DEV
   int status;
   glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
   if (!status) {
@@ -129,6 +131,9 @@ shader_program_make(const struct str_view *vert_src, const struct str_view *frag
   return program;
 }
 
+#define ATLAS_SIZE 512
+#define ATLAS_PIXEL (1.0/ATLAS_SIZE)
+
 bool
 renderer_make(struct arena *arena) {
   log_infol("making renderer...");
@@ -149,6 +154,36 @@ renderer_make(struct arena *arena) {
   glUseProgram(renderer.sh_default);
   glUniformMatrix4fv(renderer.sh_default_proj, 1, false, projection);
   log_infol("created default shader");
+  int texture_atlas_width, texture_atlas_height, texture_atlas_channels;
+  uint8_t *texture_atlas_data = stbi_load(
+    "assets/atlas.png",
+    &texture_atlas_width,
+    &texture_atlas_height,
+    &texture_atlas_channels,
+    4
+  );
+#ifdef DEV
+  if (!texture_atlas_data) {
+    log_errorlf("couldn't load texture atlas");
+    return false;
+  }
+  if (texture_atlas_width != ATLAS_SIZE) {
+    log_errorlf("texture atlas width (%d) is not equal to ATLAS_SIZE (%u)", texture_atlas_width, ATLAS_SIZE);
+    return false;
+  }
+  if (texture_atlas_height != ATLAS_SIZE) {
+    log_errorlf("texture atlas height (%d) is not equal to ATLAS_SIZE (%u)", texture_atlas_height, ATLAS_SIZE);
+    return false;
+  }
+#endif
+  glGenTextures(1, &renderer.texture_atlas);
+  glBindTexture(GL_TEXTURE_2D, renderer.texture_atlas);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ATLAS_SIZE, ATLAS_SIZE, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture_atlas_data);
+  stbi_image_free(texture_atlas_data);
+  log_warnl("actually implement the texture atlas from texture atlas data");
+  log_infol("loaded texture atlas");
   glEnable(GL_DEPTH_TEST);
   uint32_t *indices = arena_push_array(arena, true, uint32_t, INDEX_CAPACITY);
   if (!indices) {
@@ -197,19 +232,26 @@ renderer_submit(void) {
 }
 
 void
-renderer_quad(struct v2 position, struct v2 size, struct color color, float depth) {
+renderer_quad(struct v2 position, struct v2 size, uint32_t texture_x, uint32_t texture_y, uint32_t texture_w, uint32_t texture_h, struct color color, float depth) {
 #if DEV
   if (renderer.quads_amount >= QUAD_CAPACITY) {
     log_warnlf("%s: quads ran out of memory. increase QUAD_CAPACITY", __func__);
     return;
   }
 #endif
+  if (depth < 0) depth = 0;
   struct quad *quad = &renderer.quads[renderer.quads_amount++];
   size = v2_mul(size, V2(0.5, 0.5));
+  struct v2 texture_pos = { texture_x * ATLAS_PIXEL, texture_y * ATLAS_PIXEL };
+  struct v2 texture_dim = { texture_w * ATLAS_PIXEL, texture_h * ATLAS_PIXEL };
   quad->v[0].position = V2(position.x - size.x, position.y - size.y);
   quad->v[1].position = V2(position.x + size.x, position.y - size.y);
   quad->v[2].position = V2(position.x + size.x, position.y + size.y);
   quad->v[3].position = V2(position.x - size.x, position.y + size.y);
+  quad->v[0].texcoord = V2(texture_pos.x                , texture_pos.y + texture_dim.y);
+  quad->v[1].texcoord = V2(texture_pos.x + texture_dim.x, texture_pos.y + texture_dim.y);
+  quad->v[2].texcoord = V2(texture_pos.x + texture_dim.x, texture_pos.y                );
+  quad->v[3].texcoord = V2(texture_pos.x                , texture_pos.y                );
   quad->v[0].blendcol = color;
   quad->v[1].blendcol = color;
   quad->v[2].blendcol = color;
@@ -219,3 +261,5 @@ renderer_quad(struct v2 position, struct v2 size, struct color color, float dept
   quad->v[2].depth = depth;
   quad->v[3].depth = depth;
 }
+
+// TODO: texture atlas and texturing

@@ -27,9 +27,12 @@
 "\n" \
 "out vec4 f_color;\n" \
 "\n" \
+"uniform sampler2D texture_atlas;\n" \
+"\n" \
 "void\n" \
 "main() {\n" \
-"  f_color = vec4(v_blendcol, 1.0);\n" \
+"  f_color = texture(texture_atlas, v_texcoord);\n" \
+"  f_color.rgb *= v_blendcol;\n" \
 "  if (f_color.a < 0.1) discard;" \
 "}\n")
 

@@ -77,7 +77,7 @@ window_is_running(void) {
 bool
 window_is_key_press(enum key key) {
 #if DEV
-  if (key < KEY_FIRST || key >= KEY_AMOUNT) {
+  if (key >= KEY_AMOUNT) {
     log_errorlf("%s: passing invalid key", __func__);
     return false;
   }
@@ -88,7 +88,7 @@ window_is_key_press(enum key key) {
 bool
 window_is_key_down(enum key key) {
 #if DEV
-  if (key < KEY_FIRST || key >= KEY_AMOUNT) {
+  if (key >= KEY_AMOUNT) {
     log_errorlf("%s: passing invalid key", __func__);
     return false;
   }
@@ -99,7 +99,7 @@ window_is_key_down(enum key key) {
 bool
 window_is_key_up(enum key key) {
 #if DEV
-  if (key < KEY_FIRST || key >= KEY_AMOUNT) {
+  if (key >= KEY_AMOUNT) {
     log_errorlf("%s: passing invalid key", __func__);
     return false;
   }

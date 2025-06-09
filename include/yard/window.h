@@ -3,9 +3,8 @@
 
 #include "yard/core.h"
 
-enum key {
-  KEY_FIRST = 0,
-  K_LEFT = KEY_FIRST,
+enum key : uint8_t {
+  K_LEFT = 0,
   K_RIGHT,
   K_UP,
   K_DOWN,
