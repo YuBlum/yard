@@ -12,7 +12,7 @@ struct str {
 
 struct str_view {
   size_t length;
-  char *data;
+  const char *data;
 };
 #define str_view_make_from_lit(str_lit) (struct str_view) { sizeof (str_lit)-1, str_lit }
 
@@ -29,6 +29,6 @@ struct str *str_make_from_view(struct arena *arena, const struct str_view *view)
 struct str *str_make_from_joint(struct arena *arena, const struct str_joint *joint);
 #define str_make_from_views(arena, ...) str_make_from_joint(arena, str_join_make(__VA_ARGS__))
 
-bool str_view_make_from_str(struct str_view *out, struct str *str, size_t start, size_t end);
+bool str_view_make_from_str(struct str_view *out, const struct str *str, size_t start, size_t end);
 
 #endif/*__YSTRING_H__*/

@@ -68,7 +68,7 @@ str_make_from_joint(struct arena *arena, const struct str_joint *joint) {
 }
 
 bool
-str_view_make_from_str(struct str_view *out, struct str *str, size_t start, size_t end) {
+str_view_make_from_str(struct str_view *out, const struct str *str, size_t start, size_t end) {
 #if DEV
   if (!out) {
     log_errorf("%s: invalid string view output", __func__);
