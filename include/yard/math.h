@@ -1,5 +1,5 @@
-#ifndef __MATH_H__
-#define __MATH_H__
+#ifndef __YMATH_H__
+#define __YMATH_H__
 
 #include <math.h>
 
@@ -11,4 +11,4 @@ static inline struct v2 v2_sub(struct v2 v0, struct v2 v1) { return (struct v2) 
 static inline struct v2 v2_mul(struct v2 v0, struct v2 v1) { return (struct v2) { v0.x*v1.x, v0.y*v1.y }; }
 static inline struct v2 v2_div(struct v2 v0, struct v2 v1) { return (struct v2) { v0.x/v1.x, v0.y/v1.y }; }
 
-#endif/*__MATH_H__*/
+#endif/*__YMATH_H__*/

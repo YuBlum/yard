@@ -127,8 +127,9 @@ renderer_make(struct arena *arena) {
     &SH_DEFAULT_FRAG
   );
   if (!renderer.sh_default) return false;
+  glUseProgram(renderer.sh_default);
   log_infol("created default shader");
-  glEnable(GL_DEPTH_TEST);
+  //glEnable(GL_DEPTH_TEST);
   uint32_t *indices = arena_push_array(arena, true, uint32_t, INDEX_CAPACITY);
   if (!indices) {
     log_errorl("couldn't make indices buffer");
@@ -144,20 +145,27 @@ renderer_make(struct arena *arena) {
     indices[i++] = j + 0;
     j += 4;
   }
+  struct color color = { 0.8f, 0.8f, 0.2f };
+  renderer.quads[0].v[0].position = V2(-0.5f, -0.5f);
+  renderer.quads[0].v[1].position = V2(+0.5f, -0.5f);
+  renderer.quads[0].v[2].position = V2(+0.0f, +0.5f);
+  renderer.quads[0].v[0].blendcol = color;
+  renderer.quads[0].v[1].blendcol = color;
+  renderer.quads[0].v[2].blendcol = color;
   glGenVertexArrays(1, &renderer.vao);
   glGenBuffers(1, &renderer.vbo);
   glGenBuffers(1, &renderer.ibo);
   glBindVertexArray(renderer.vao);
-  glBindBuffer(GL_ARRAY_BUFFER, renderer.vao);
-  glBufferData(GL_ARRAY_BUFFER, sizeof (struct quad) * QUAD_CAPACITY, 0, GL_DYNAMIC_DRAW);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer.vao);
+  glBindBuffer(GL_ARRAY_BUFFER, renderer.vbo);
+  glBufferData(GL_ARRAY_BUFFER, sizeof (struct quad) * QUAD_CAPACITY, renderer.quads, GL_STATIC_DRAW);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer.ibo);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (uint32_t) * INDEX_CAPACITY, indices, GL_STATIC_DRAW);
   glEnableVertexAttribArray(0);
   glEnableVertexAttribArray(1);
   glEnableVertexAttribArray(2);
-  glVertexAttribPointer(0, 2, GL_FLOAT, false, sizeof (struct vertex), offsetof (struct vertex, position));
-  glVertexAttribPointer(1, 2, GL_FLOAT, false, sizeof (struct vertex), offsetof (struct vertex, position));
-  glVertexAttribPointer(2, 3, GL_FLOAT, false, sizeof (struct vertex), offsetof (struct vertex, position));
+  glVertexAttribPointer(0, 2, GL_FLOAT, false, sizeof (struct vertex), (void *)offsetof (struct vertex, position));
+  glVertexAttribPointer(1, 2, GL_FLOAT, false, sizeof (struct vertex), (void *)offsetof (struct vertex, texcoord));
+  glVertexAttribPointer(2, 3, GL_FLOAT, false, sizeof (struct vertex), (void *)offsetof (struct vertex, blendcol));
   log_infol("vao, vbo and ibo created successfully");
   log_infol("renderer creation complete!");
   return true;
@@ -167,5 +175,6 @@ bool
 renderer_submit(void) {
   glClearColor(0.8f, 0.2f, 0.2f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
+  glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
   return true;
 }
