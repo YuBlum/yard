@@ -11,6 +11,7 @@ main(void) {
   if (!renderer_make()) return 1;
   struct arena *frame_arena = arena_make(0, 0);
   while (window_is_running()) {
+    if (window_is_key_down(K_EXIT)) window_close();
     arena_clear(frame_arena);
   }
   return 0;

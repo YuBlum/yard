@@ -3,7 +3,23 @@
 
 #include "yard/core.h"
 
+enum key {
+  KEY_FIRST = 0,
+  K_LEFT = KEY_FIRST,
+  K_RIGHT,
+  K_UP,
+  K_DOWN,
+  K_A,
+  K_B,
+  K_EXIT,
+  KEY_AMOUNT,
+};
+
 bool window_make(uint32_t width, uint32_t height);
+void window_close();
 bool window_is_running();
+bool window_is_key_press(enum key key);
+bool window_is_key_down(enum key key);
+bool window_is_key_up(enum key key);
 
 #endif/*__WINDOW_H__*/

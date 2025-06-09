@@ -154,7 +154,8 @@ renderer_make(void) {
     &SH_DEFAULT_VERT,
     &SH_DEFAULT_FRAG
   );
-  log_info("default shader created");
+  if (!renderer.sh_default) return false;
+  log_info("created default shader");
   log_info("renderer creation complete!");
   return true;
 }
