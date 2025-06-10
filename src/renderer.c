@@ -16,23 +16,23 @@ struct vertex {
   struct color blendcol;
 };
 
-struct quad {
-  struct v2 position;
-  struct v2 size_half;
-  struct v2 texture_position;
-  struct v2 texture_size;
-  struct color blendcol;
-  float depth;
-};
-
 #define QUAD_CAPACITY 10000
 #define INDEX_CAPACITY (QUAD_CAPACITY*6)
 #define VERTEX_CAPACITY (QUAD_CAPACITY*4)
 
+struct quad_vertices {
+  struct vertex v[4];
+};
+
+struct quad_indices {
+  uint32_t i[6];
+};
+
 struct renderer {
-  struct quad quads[QUAD_CAPACITY];
-  struct vertex vertices[VERTEX_CAPACITY];
-  size_t quads_amount;
+  struct quad_vertices vertices[QUAD_CAPACITY];
+  struct quad_indices indices[QUAD_CAPACITY];
+  float indices_depth[QUAD_CAPACITY];
+  uint32_t quads_amount;
   uint32_t sh_default;
   int32_t  sh_default_proj;
   uint32_t texture_atlas;
@@ -134,11 +134,8 @@ shader_program_make(const struct str_view *vert_src, const struct str_view *frag
   return program;
 }
 
-#define ATLAS_SIZE 512
-#define ATLAS_PIXEL (1.0/ATLAS_SIZE)
-
 bool
-renderer_make(struct arena *arena) {
+renderer_make(void) {
   log_infol("making renderer...");
   gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
   log_infol("loaded opengl functions");
@@ -186,30 +183,15 @@ renderer_make(struct arena *arena) {
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ATLAS_SIZE, ATLAS_SIZE, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture_atlas_data);
   stbi_image_free(texture_atlas_data);
   log_infol("loaded texture atlas");
-  uint32_t *indices = arena_push_array(arena, true, uint32_t, INDEX_CAPACITY);
-  if (!indices) {
-    log_errorl("couldn't make indices buffer");
-    return false;
-  }
-  uint32_t i = 0, j = 0;
-  while (i < INDEX_CAPACITY) {
-    indices[i++] = j + 0;
-    indices[i++] = j + 1;
-    indices[i++] = j + 2;
-    indices[i++] = j + 2;
-    indices[i++] = j + 3;
-    indices[i++] = j + 0;
-    j += 4;
-  }
   uint32_t vao, vbo, ibo;
   glGenVertexArrays(1, &vao);
   glGenBuffers(1, &vbo);
   glGenBuffers(1, &ibo);
   glBindVertexArray(vao);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, sizeof (struct vertex) * VERTEX_CAPACITY, 0, GL_DYNAMIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof (renderer.vertices), 0, GL_DYNAMIC_DRAW);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (uint32_t) * INDEX_CAPACITY, indices, GL_STATIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (renderer.indices), 0, GL_DYNAMIC_DRAW);
   glEnableVertexAttribArray(0);
   glEnableVertexAttribArray(1);
   glEnableVertexAttribArray(2);
@@ -221,58 +203,63 @@ renderer_make(struct arena *arena) {
   return true;
 }
 
-static int compare_quads(const void *q0, const void *q1) { return ((struct quad *)q1)->depth - ((struct quad *)q0)->depth; }
+static int
+compare_indices(const void *r0, const void *r1) {
+  float d0 = renderer.indices_depth[(size_t)((const struct quad_indices *)r0 - renderer.indices)];
+  float d1 = renderer.indices_depth[(size_t)((const struct quad_indices *)r1 - renderer.indices)];
+  if (d1 < d0) return -1;
+  if (d1 > d0) return +1;
+  return 0;
+}
 
 void
 renderer_submit(void) {
-  qsort(renderer.quads, renderer.quads_amount, sizeof (struct quad), compare_quads);
-  for (size_t i = 0; i < renderer.quads_amount; i++) {
-    struct quad *quad = &renderer.quads[i];
-    renderer.vertices[i * 4 + 0].position = v2_add(quad->position, V2(-quad->size_half.x, -quad->size_half.y));
-    renderer.vertices[i * 4 + 1].position = v2_add(quad->position, V2(+quad->size_half.x, -quad->size_half.y));
-    renderer.vertices[i * 4 + 2].position = v2_add(quad->position, V2(+quad->size_half.x, +quad->size_half.y));
-    renderer.vertices[i * 4 + 3].position = v2_add(quad->position, V2(-quad->size_half.x, +quad->size_half.y));
-    renderer.vertices[i * 4 + 0].texcoord = v2_add(quad->texture_position, V2(0, quad->texture_size.y));
-    renderer.vertices[i * 4 + 1].texcoord = v2_add(quad->texture_position, V2(quad->texture_size.x, quad->texture_size.y));
-    renderer.vertices[i * 4 + 2].texcoord = v2_add(quad->texture_position, V2(quad->texture_size.x, 0.0));
-    renderer.vertices[i * 4 + 3].texcoord = v2_add(quad->texture_position, V2(0.0f, 0.0));
-    renderer.vertices[i * 4 + 0].blendcol = quad->blendcol;
-    renderer.vertices[i * 4 + 1].blendcol = quad->blendcol;
-    renderer.vertices[i * 4 + 2].blendcol = quad->blendcol;
-    renderer.vertices[i * 4 + 3].blendcol = quad->blendcol;
-  }
+  // NOTE: maybe instead of sorting and resetting the batch every frame you can have 'permanent' quads
+  qsort(renderer.indices,  renderer.quads_amount, sizeof (struct quad_indices), compare_indices);
   glClearColor(0.8f, 0.2f, 0.2f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
-  glBufferSubData(GL_ARRAY_BUFFER, 0, renderer.quads_amount * 4 * sizeof (struct vertex), renderer.vertices);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, renderer.quads_amount * sizeof (struct quad_vertices), renderer.vertices);
+  glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, renderer.quads_amount * sizeof (struct quad_indices), renderer.indices);
   glDrawElements(GL_TRIANGLES, renderer.quads_amount * 6, GL_UNSIGNED_INT, 0);
   renderer.quads_amount = 0;
 }
 
 void
-renderer_quad(struct v2 position, struct v2 size, uint32_t texture_x, uint32_t texture_y, uint32_t texture_w, uint32_t texture_h, struct color color, float depth) {
+renderer_request_quads(uint32_t amount, const struct v2 positions[amount], const struct v2 sizes[amount], const struct v2u texture_positions[amount], const struct v2u texture_sizes[amount], const struct color colors[amount], float depths[amount]) {
 #if DEV
-  if (renderer.quads_amount >= QUAD_CAPACITY) {
-    log_warnlf("%s: quads ran out of memory. increase QUAD_CAPACITY", __func__);
+  if (renderer.quads_amount + amount >= QUAD_CAPACITY) {
+    log_warnlf("%s: trying to request to much quads to rendering. increase QUAD_CAPACITY", __func__);
     return;
   }
 #endif
-  struct quad *quad = &renderer.quads[renderer.quads_amount++];
-  quad->position = position;
-  quad->size_half = V2(size.x * 0.5f, size.y * 0.5f);
-  quad->texture_position = V2(texture_x * ATLAS_PIXEL, texture_y * ATLAS_PIXEL);
-  quad->texture_size = V2(texture_w * ATLAS_PIXEL, texture_h * ATLAS_PIXEL);
-  quad->blendcol = color;
-  quad->depth = depth;
-}
-
-void
-renderer_rect(struct v2 position, struct v2 size, struct color color, float depth) {
-#if DEV
-  if (renderer.quads_amount >= QUAD_CAPACITY) {
-    log_warnlf("%s: quads ran out of memory. increase QUAD_CAPACITY", __func__);
-    return;
+  struct v2 size_half;
+  struct v2 tpos;
+  struct v2 tsiz;
+  for (uint32_t i = 0; i < amount; i++) {
+    size_half = v2_muls(sizes[i], 0.5f);
+    tpos = v2_muls(V2U_V2(texture_positions[i]), ATLAS_PIXEL);
+    tsiz = v2_muls(V2U_V2(texture_sizes[i]), ATLAS_PIXEL);
+    renderer.vertices[renderer.quads_amount + i].v[0].position = v2_add(positions[i], V2(-size_half.x, -size_half.y));
+    renderer.vertices[renderer.quads_amount + i].v[1].position = v2_add(positions[i], V2(+size_half.x, -size_half.y));
+    renderer.vertices[renderer.quads_amount + i].v[2].position = v2_add(positions[i], V2(+size_half.x, +size_half.y));
+    renderer.vertices[renderer.quads_amount + i].v[3].position = v2_add(positions[i], V2(-size_half.x, +size_half.y));
+    renderer.vertices[renderer.quads_amount + i].v[0].texcoord = v2_add(tpos, V2(0.0f  , tsiz.y));
+    renderer.vertices[renderer.quads_amount + i].v[1].texcoord = v2_add(tpos, V2(tsiz.x, tsiz.y));
+    renderer.vertices[renderer.quads_amount + i].v[2].texcoord = v2_add(tpos, V2(tsiz.x, 0.0f  ));
+    renderer.vertices[renderer.quads_amount + i].v[3].texcoord = v2_add(tpos, V2(0.0f  , 0.0f  ));
+    renderer.vertices[renderer.quads_amount + i].v[0].blendcol = colors[i];
+    renderer.vertices[renderer.quads_amount + i].v[1].blendcol = colors[i];
+    renderer.vertices[renderer.quads_amount + i].v[2].blendcol = colors[i];
+    renderer.vertices[renderer.quads_amount + i].v[3].blendcol = colors[i];
   }
-#endif
-  static_assert(ATLAS_SIZE==512, "renderer_rect isn't going to work if 'pixel' on the atlas isn't setup correctly");
-  renderer_quad(position, size, ATLAS_SIZE-1, ATLAS_SIZE-1, 1, 1, color, depth);
+  for (uint32_t i = 0; i < amount; i++) renderer.indices_depth[renderer.quads_amount + i] = depths[i];
+  for (uint32_t i = renderer.quads_amount; i < renderer.quads_amount + amount; i++) {
+    renderer.indices[i].i[0] = i * 4 + 0;
+    renderer.indices[i].i[1] = i * 4 + 1;
+    renderer.indices[i].i[2] = i * 4 + 2;
+    renderer.indices[i].i[3] = i * 4 + 2;
+    renderer.indices[i].i[4] = i * 4 + 3;
+    renderer.indices[i].i[5] = i * 4 + 0;
+  }
+  renderer.quads_amount += amount;
 }
