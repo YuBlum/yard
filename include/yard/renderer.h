@@ -14,5 +14,6 @@ bool renderer_make(struct arena *arena);
 void renderer_submit(void);
 
 void renderer_quad(struct v2 position, struct v2 size, uint32_t texture_x, uint32_t texture_y, uint32_t texture_w, uint32_t texture_h, struct color color, float depth);
+void renderer_rect(struct v2 position, struct v2 size, struct color color, float depth);
 
 #endif/*__RENDERER_H__*/

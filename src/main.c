@@ -22,8 +22,10 @@ main(void) {
     p.x += (window_is_key_down(K_RIGHT) - window_is_key_down(K_LEFT)) * 0.1f;
     p.y += (window_is_key_down(K_UP)    - window_is_key_down(K_DOWN)) * 0.1f;
     p_depth += (window_is_key_press(K_B) - window_is_key_press(K_A));
+    log_infolf("p_depth: %f", p_depth);
     renderer_quad(p, V2(1.0f, 1.0f), 0, 0, 16, 16, RGB(0.8f, 0.8f, 0.2f), p_depth);
     renderer_quad(V2(0.5f, 0.5f), V2(1.0f, 1.0f), 16, 16, 16, 16, RGB(0.4f, 0.2f, 0.8f), 0.0f);
+    renderer_rect(V2(-2.0f, -2.0f), V2(1.5f, 0.5f), RGB(0.2f, 0.8f, 0.2f), -1.0f);
     renderer_submit();
     arena_clear(tmp_arena);
   }

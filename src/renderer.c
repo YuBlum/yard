@@ -1,6 +1,7 @@
 #if DEV
 #  include <assert.h>
 #endif
+#include <stdlib.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <stb_image.h>
@@ -13,11 +14,15 @@ struct vertex {
   struct v2    position;
   struct v2    texcoord;
   struct color blendcol;
-  float        depth;
 };
 
 struct quad {
-  struct vertex v[4];
+  struct v2 position;
+  struct v2 size_half;
+  struct v2 texture_position;
+  struct v2 texture_size;
+  struct color blendcol;
+  float depth;
 };
 
 #define QUAD_CAPACITY 10000
@@ -26,6 +31,7 @@ struct quad {
 
 struct renderer {
   struct quad quads[QUAD_CAPACITY];
+  struct vertex vertices[VERTEX_CAPACITY];
   size_t quads_amount;
   uint32_t sh_default;
   int32_t  sh_default_proj;
@@ -36,15 +42,12 @@ struct renderer {
 #define RIGHT  (+GAME_W * 0.5f)
 #define BOTTOM (-GAME_H * 0.5f)
 #define TOP    (+GAME_H * 0.5f)
-#define FAR    1000.0f
-#define NEAR   0.0f
 
 static struct renderer renderer;
-static float projection[4*4] = {
-  +2.0f/(RIGHT-LEFT)        , +0.0f                     , +0.0f                 , +0.0f,
-  +0.0f                     , +2.0f/(TOP-BOTTOM)        , +0.0f                 , +0.0f,
-  +0.0f                     , +0.0f                     , +2.0f/(FAR-NEAR)      , +0.0f,
-  -(RIGHT+LEFT)/(RIGHT-LEFT), -(TOP+BOTTOM)/(TOP-BOTTOM), -(FAR+NEAR)/(FAR-NEAR), +1.0f,
+static float projection[3*3] = {
+  +2.0f/(RIGHT-LEFT)        , +0.0f                     , +0.0f,
+  +0.0f                     , +2.0f/(TOP-BOTTOM)        , +0.0f,
+  -(RIGHT+LEFT)/(RIGHT-LEFT), -(TOP+BOTTOM)/(TOP-BOTTOM), +1.0f,
 };
 
 #define SHADER_LOG_CAPACITY 512
@@ -152,7 +155,7 @@ renderer_make(struct arena *arena) {
   }
 #endif
   glUseProgram(renderer.sh_default);
-  glUniformMatrix4fv(renderer.sh_default_proj, 1, false, projection);
+  glUniformMatrix3fv(renderer.sh_default_proj, 1, false, projection);
   log_infol("created default shader");
   int texture_atlas_width, texture_atlas_height, texture_atlas_channels;
   uint8_t *texture_atlas_data = stbi_load(
@@ -182,9 +185,7 @@ renderer_make(struct arena *arena) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ATLAS_SIZE, ATLAS_SIZE, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture_atlas_data);
   stbi_image_free(texture_atlas_data);
-  log_warnl("actually implement the texture atlas from texture atlas data");
   log_infol("loaded texture atlas");
-  glEnable(GL_DEPTH_TEST);
   uint32_t *indices = arena_push_array(arena, true, uint32_t, INDEX_CAPACITY);
   if (!indices) {
     log_errorl("couldn't make indices buffer");
@@ -206,28 +207,44 @@ renderer_make(struct arena *arena) {
   glGenBuffers(1, &ibo);
   glBindVertexArray(vao);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, sizeof (struct quad) * QUAD_CAPACITY, 0, GL_DYNAMIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof (struct vertex) * VERTEX_CAPACITY, 0, GL_DYNAMIC_DRAW);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (uint32_t) * INDEX_CAPACITY, indices, GL_STATIC_DRAW);
   glEnableVertexAttribArray(0);
   glEnableVertexAttribArray(1);
   glEnableVertexAttribArray(2);
-  glEnableVertexAttribArray(3);
   glVertexAttribPointer(0, 2, GL_FLOAT, false, sizeof (struct vertex), (void *)offsetof (struct vertex, position));
   glVertexAttribPointer(1, 2, GL_FLOAT, false, sizeof (struct vertex), (void *)offsetof (struct vertex, texcoord));
   glVertexAttribPointer(2, 3, GL_FLOAT, false, sizeof (struct vertex), (void *)offsetof (struct vertex, blendcol));
-  glVertexAttribPointer(3, 1, GL_FLOAT, false, sizeof (struct vertex), (void *)offsetof (struct vertex, depth));
   log_infol("vao, vbo and ibo created successfully");
   log_infol("renderer creation complete!");
   return true;
 }
 
+static int compare_quads(const void *q0, const void *q1) { return ((struct quad *)q1)->depth - ((struct quad *)q0)->depth; }
+
 void
 renderer_submit(void) {
+  qsort(renderer.quads, renderer.quads_amount, sizeof (struct quad), compare_quads);
+  for (size_t i = 0; i < renderer.quads_amount; i++) {
+    struct quad *quad = &renderer.quads[i];
+    renderer.vertices[i * 4 + 0].position = v2_add(quad->position, V2(-quad->size_half.x, -quad->size_half.y));
+    renderer.vertices[i * 4 + 1].position = v2_add(quad->position, V2(+quad->size_half.x, -quad->size_half.y));
+    renderer.vertices[i * 4 + 2].position = v2_add(quad->position, V2(+quad->size_half.x, +quad->size_half.y));
+    renderer.vertices[i * 4 + 3].position = v2_add(quad->position, V2(-quad->size_half.x, +quad->size_half.y));
+    renderer.vertices[i * 4 + 0].texcoord = v2_add(quad->texture_position, V2(0, quad->texture_size.y));
+    renderer.vertices[i * 4 + 1].texcoord = v2_add(quad->texture_position, V2(quad->texture_size.x, quad->texture_size.y));
+    renderer.vertices[i * 4 + 2].texcoord = v2_add(quad->texture_position, V2(quad->texture_size.x, 0.0));
+    renderer.vertices[i * 4 + 3].texcoord = v2_add(quad->texture_position, V2(0.0f, 0.0));
+    renderer.vertices[i * 4 + 0].blendcol = quad->blendcol;
+    renderer.vertices[i * 4 + 1].blendcol = quad->blendcol;
+    renderer.vertices[i * 4 + 2].blendcol = quad->blendcol;
+    renderer.vertices[i * 4 + 3].blendcol = quad->blendcol;
+  }
   glClearColor(0.8f, 0.2f, 0.2f, 1.0f);
-  glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-  glBufferSubData(GL_ARRAY_BUFFER, 0, renderer.quads_amount * sizeof (struct quad), renderer.quads);
-  glDrawElements(GL_TRIANGLES, renderer.quads_amount*6, GL_UNSIGNED_INT, 0);
+  glClear(GL_COLOR_BUFFER_BIT);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, renderer.quads_amount * 4 * sizeof (struct vertex), renderer.vertices);
+  glDrawElements(GL_TRIANGLES, renderer.quads_amount * 6, GL_UNSIGNED_INT, 0);
   renderer.quads_amount = 0;
 }
 
@@ -239,27 +256,23 @@ renderer_quad(struct v2 position, struct v2 size, uint32_t texture_x, uint32_t t
     return;
   }
 #endif
-  if (depth < 0) depth = 0;
   struct quad *quad = &renderer.quads[renderer.quads_amount++];
-  size = v2_mul(size, V2(0.5, 0.5));
-  struct v2 texture_pos = { texture_x * ATLAS_PIXEL, texture_y * ATLAS_PIXEL };
-  struct v2 texture_dim = { texture_w * ATLAS_PIXEL, texture_h * ATLAS_PIXEL };
-  quad->v[0].position = V2(position.x - size.x, position.y - size.y);
-  quad->v[1].position = V2(position.x + size.x, position.y - size.y);
-  quad->v[2].position = V2(position.x + size.x, position.y + size.y);
-  quad->v[3].position = V2(position.x - size.x, position.y + size.y);
-  quad->v[0].texcoord = V2(texture_pos.x                , texture_pos.y + texture_dim.y);
-  quad->v[1].texcoord = V2(texture_pos.x + texture_dim.x, texture_pos.y + texture_dim.y);
-  quad->v[2].texcoord = V2(texture_pos.x + texture_dim.x, texture_pos.y                );
-  quad->v[3].texcoord = V2(texture_pos.x                , texture_pos.y                );
-  quad->v[0].blendcol = color;
-  quad->v[1].blendcol = color;
-  quad->v[2].blendcol = color;
-  quad->v[3].blendcol = color;
-  quad->v[0].depth = depth;
-  quad->v[1].depth = depth;
-  quad->v[2].depth = depth;
-  quad->v[3].depth = depth;
+  quad->position = position;
+  quad->size_half = V2(size.x * 0.5f, size.y * 0.5f);
+  quad->texture_position = V2(texture_x * ATLAS_PIXEL, texture_y * ATLAS_PIXEL);
+  quad->texture_size = V2(texture_w * ATLAS_PIXEL, texture_h * ATLAS_PIXEL);
+  quad->blendcol = color;
+  quad->depth = depth;
 }
 
-// TODO: texture atlas and texturing
+void
+renderer_rect(struct v2 position, struct v2 size, struct color color, float depth) {
+#if DEV
+  if (renderer.quads_amount >= QUAD_CAPACITY) {
+    log_warnlf("%s: quads ran out of memory. increase QUAD_CAPACITY", __func__);
+    return;
+  }
+#endif
+  static_assert(ATLAS_SIZE==512, "renderer_rect isn't going to work if 'pixel' on the atlas isn't setup correctly");
+  renderer_quad(position, size, ATLAS_SIZE-1, ATLAS_SIZE-1, 1, 1, color, depth);
+}
