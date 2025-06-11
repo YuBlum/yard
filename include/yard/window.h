@@ -20,5 +20,6 @@ bool window_is_running();
 bool window_is_key_press(enum key key);
 bool window_is_key_down(enum key key);
 bool window_is_key_up(enum key key);
+float window_get_delta_time(void);
 
 #endif/*__WINDOW_H__*/

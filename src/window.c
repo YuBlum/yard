@@ -9,6 +9,7 @@ struct window {
   uint32_t height;
   bool keys[KEY_AMOUNT];
   bool pkeys[KEY_AMOUNT];
+  float time;
 };
 
 static struct window window;
@@ -57,6 +58,7 @@ window_make(uint32_t width, uint32_t height) {
   (void)memset(window.keys, false, sizeof (bool) * KEY_AMOUNT);
   (void)glfwSetKeyCallback(window.handle, key_callback);
   log_infol("window input setup");
+  window.time = glfwGetTime();
   log_infol("window creation complete!");
   return true;
 }
@@ -105,4 +107,11 @@ window_is_key_up(enum key key) {
   }
 #endif
   return !window.keys[key];
+}
+
+float
+window_get_delta_time(void) {
+  float prv_time = window.time;
+  window.time = glfwGetTime();
+  return window.time - prv_time;
 }

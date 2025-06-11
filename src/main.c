@@ -20,7 +20,7 @@ main(void) {
   if (!entities_layout_set(0)) return 1; // TODO: remove this from here
   while (window_is_running()) {
     if (window_is_key_down(K_EXIT)) window_close();
-    entities_update(1.0f);
+    entities_update(window_get_delta_time());
     entities_render();
     renderer_submit();
     arena_clear(tmp_arena);

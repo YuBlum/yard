@@ -1,7 +1,7 @@
 #include "yard/window.h"
 #include "yard/entities/player.h"
 
-#define PLAYER_SPEED 0.1f
+#define PLAYER_SPEED 5.0f
 
 void
 player_init(struct player_data *self) {

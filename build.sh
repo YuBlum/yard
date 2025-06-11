@@ -17,5 +17,6 @@ INCS="
 "
 
 rm -f ./$OUT
+python3 ./generate_entities.py
 cc $FLAGS $DEF $LIBS $INCS $SRC -o $OUT
 ./$OUT
