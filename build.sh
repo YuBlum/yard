@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/env sh
 
 OUT="yard"
 FLAGS="-Wall -Wextra -Werror -Wpedantic -std=c23"
@@ -17,6 +17,6 @@ INCS="
 "
 
 rm -f ./$OUT
-python3 ./generate_entities.py
+./generate_entities.py
 cc $FLAGS $DEF $LIBS $INCS $SRC -o $OUT
 ./$OUT

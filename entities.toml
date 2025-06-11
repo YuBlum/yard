@@ -1,13 +1,25 @@
 # in the future this will generate all the game entities
-[entity.enemy]
-component = [ "renderable", "movable" ] # repeating fields will only be declared once from the first component that they're found (position)
-exclude = [ "color" ] # this member field will not be declared
-field.hp = "uint32_t" # fields can be declared directly
+[entity.shooter_enemy]
+component         = [ "renderable", "movable" ] # repeating fields will only be declared once from the first component that they're found (position)
+exclude           = [ "color" ] # if this members exists on a component it'll not be declared
+field.hp          = "uint32_t" # fields can be declared directly
+field.damage      = "uint32_t"
+field.shoot_timer = "float"
+field.size        = "float" # you can shadow component fields with the field table
 
-[entity.unique.player] # entities in the unique field will not generate a SoA
-component = [ "renderable", "movable" ] # repeating fields will only be declared once from the first component that they're found (position)
-exclude = [ "color" ] # this member field will not be declared
-field.hp = "uint32_t" # fields can be declared directly
+[entity.melee_enemy]
+component    = [ "renderable", "movable" ]
+exclude      = [ "color" ]
+field.hp     = "uint32_t"
+field.damage = "uint32_t"
+field.size   = "float"
+
+[entity.unique.player] # entities in the unique table will not generate a SoA
+component       = [ "renderable", "movable" ]
+exclude         = [ "color", "size", "texture_size", "speed" ]
+field.hp        = "uint32_t"
+field.damage    = "uint32_t"
+field.invicible = "float"
 
 [component.renderable]
 position         = "struct v2"
