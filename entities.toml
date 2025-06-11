@@ -1,0 +1,7 @@
+# in the future this will generate all the game entities
+[entity.enemy]
+position = "struct v2"
+size = "struct v2"
+hp = "uint32_t"
+
+

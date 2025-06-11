@@ -2,6 +2,7 @@
 #define __YMATH_H__
 
 #include <math.h>
+#include <stdint.h>
 
 struct v2 { float x, y; };
 #define V2(x, y) ((struct v2) {x, y})

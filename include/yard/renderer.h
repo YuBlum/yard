@@ -24,7 +24,4 @@ void renderer_submit(void);
 
 void renderer_request_quads(uint32_t amount, const struct v2 positions[amount], const struct v2 sizes[amount], const struct v2u texture_positions[amount], const struct v2u texture_sizes[amount], const struct color colors[amount], float depths[amount]);
 
-void renderer_quad(struct v2 position, struct v2 size, uint32_t texture_x, uint32_t texture_y, uint32_t texture_w, uint32_t texture_h, struct color color, float depth);
-void renderer_rect(struct v2 position, struct v2 size, struct color color, float depth);
-
 #endif/*__RENDERER_H__*/
