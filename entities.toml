@@ -1,4 +1,5 @@
 # in the future this will generate all the game entities
+# todo: add scenes
 [entity.shooter_enemy]
 component         = [ "renderable", "movable" ] # repeating fields will only be declared once from the first component that they're found (position)
 exclude           = [ "color" ] # if this members exists on a component it'll not be declared
