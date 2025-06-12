@@ -1,7 +1,7 @@
 #ifndef __ARENA_H__
 #define __ARENA_H__
 
-#include "yard/core.h"
+#include "engine/core.h"
 #include <stdalign.h>
 
 struct arena;

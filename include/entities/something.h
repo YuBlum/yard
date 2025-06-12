@@ -1,8 +1,8 @@
 #ifndef __SOMETHING_H__
 #define __SOMETHING_H__
 
-#include "yard/math.h"
-#include "yard/renderer.h"
+#include "engine/math.h"
+#include "engine/renderer.h"
 
 struct something_data {
   struct v2 *position;

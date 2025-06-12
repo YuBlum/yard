@@ -1,8 +1,8 @@
 #ifndef __PLAYER_H__
 #define __PLAYER_H__
 
-#include "yard/math.h"
-#include "yard/renderer.h"
+#include "engine/math.h"
+#include "engine/renderer.h"
 
 struct player_data {
   struct v2 position;

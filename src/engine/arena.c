@@ -1,7 +1,6 @@
 #include <sys/mman.h>
 #include <string.h>
-#include "yard/core.h"
-#include "yard/arena.h"
+#include "engine/arena.h"
 
 struct arena {
   size_t capacity;

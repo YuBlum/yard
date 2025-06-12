@@ -1,9 +1,9 @@
 #ifndef __RENDERER_H__
 #define __RENDERER_H__
 
-#include "yard/core.h"
-#include "yard/arena.h"
-#include "yard/math.h"
+#include "engine/core.h"
+#include "engine/arena.h"
+#include "engine/math.h"
 
 #define ATLAS_SIZE 512
 #define ATLAS_PIXEL (1.0/ATLAS_SIZE)

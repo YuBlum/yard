@@ -5,10 +5,10 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <stb_image.h>
-#include "yard/core.h"
-#include "yard/string.h"
-#include "yard/shaders.h"
-#include "yard/renderer.h"
+#include "engine/core.h"
+#include "engine/string.h"
+#include "engine/shaders.h"
+#include "engine/renderer.h"
 
 struct vertex {
   struct v2    position;

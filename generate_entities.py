@@ -72,8 +72,8 @@ for entity, body in entities_ir.items():
     header_guard = "__" + entity.upper() + "_H__"
     entity_headers[entity] = "#ifndef " + header_guard + "\n"
     entity_headers[entity] += "#define " + header_guard + "\n\n"
-    entity_headers[entity] += "#include \"yard/math.h\"\n"
-    entity_headers[entity] += "#include \"yard/renderer.h\"\n\n"
+    entity_headers[entity] += "#include \"engine/math.h\"\n"
+    entity_headers[entity] += "#include \"engine/renderer.h\"\n\n"
     entity_headers[entity] += "struct " + entity + "_data {\n"
     is_soa = "amount" in body
     for name, typ in body.items():
@@ -90,7 +90,7 @@ for entity, body in entities_ir.items():
 
 entity_sources = {}
 for entity in entities_all:
-    entity_sources[entity] = "#include \"yard/entities/" + entity + ".h\"\n\n"
+    entity_sources[entity] = "#include \"entities/" + entity + ".h\"\n\n"
     entity_sources[entity] += "void\n" + entity + "_init(struct " + entity + "_data *self) {\n"
     entity_sources[entity] += "  (void)self;\n  log_warnlf(\"%s: not implemented\", __func__);\n}\n\n"
     entity_sources[entity] += "void\n" + entity + "_update(struct " + entity + "_data *self, float dt) {\n"
@@ -117,10 +117,10 @@ entities_h += "\n#endif/*__ENTITIES_H__*/\n"
 
 #print(entities_h)
 
-entities_c = "#include \"yard/arena.h\"\n"
-entities_c += "#include \"yard/entities/entities.h\"\n"
+entities_c = "#include \"engine/arena.h\"\n"
+entities_c += "#include \"entities/entities.h\"\n"
 for entity in entities_all:
-    entities_c += "#include \"yard/entities/" + entity + ".h\"\n"
+    entities_c += "#include \"entities/" + entity + ".h\"\n"
 entities_c += "\nstruct entities {\n"
 entities_c += "  struct arena *arena;\n"
 for entity in entities_soa:
@@ -204,7 +204,7 @@ try:
 except:
     print("couldn't open '", path, "'", sep="")
 
-path = "include/yard/entities/entities.h"
+path = "include/entities/entities.h"
 try:
     with open(path, "w") as f:
         f.write(entities_h)
@@ -213,7 +213,7 @@ except:
     print("couldn't open '", path, "'", sep="")
 
 for entity, header in entity_headers.items():
-    path = "include/yard/entities/" + entity + ".h"
+    path = "include/entities/" + entity + ".h"
     try:
         with open(path, "w") as f:
             f.write(header)
@@ -234,12 +234,16 @@ for entity, source in entity_sources.items():
 entities_verification = set()
 path = "./.entities"
 try:
-    with open(path, "w+") as f:
+    with open(path, "r") as f:
         for line in f:
             entity = line.strip()
             if not entity in entities_all:
-                os.remove("include/yard/entities/" + entity + ".h")
+                os.remove("include/entities/" + entity + ".h")
                 os.remove("src/entities/" + entity + ".c")
+except:
+    pass
+try:
+    with open(path, "w") as f:
         for entity in entities_all:
             f.write(entity + "\n")
 except:

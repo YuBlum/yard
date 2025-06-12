@@ -1,7 +1,7 @@
 #include <string.h>
 #include <GLFW/glfw3.h>
-#include "yard/core.h"
-#include "yard/window.h"
+#include "engine/core.h"
+#include "engine/window.h"
 
 struct window {
   GLFWwindow *handle;

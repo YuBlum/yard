@@ -1,5 +1,5 @@
-#include "yard/entities/player.h"
-#include "yard/window.h"
+#include "entities/player.h"
+#include "engine/window.h"
 
 #define SPEED 5.0f
 

@@ -1,8 +1,8 @@
 #ifndef __YSTRING_H__
 #define __YSTRING_H__
 
-#include "yard/core.h"
-#include "yard/arena.h"
+#include "engine/core.h"
+#include "engine/arena.h"
 
 struct str {
   size_t length;

@@ -1,10 +1,10 @@
 #include <stdlib.h>
 #include <time.h>
-#include "yard/arena.h"
-#include "yard/window.h"
-#include "yard/renderer.h"
-#include "yard/entities/entities.h"
-#include "yard/entities/player.h"
+#include "engine/arena.h"
+#include "engine/window.h"
+#include "engine/renderer.h"
+#include "entities/entities.h"
+#include "entities/player.h"
 
 #define WINDOW_W (GAME_W_PIXEL * GAME_S)
 #define WINDOW_H (GAME_H_PIXEL * GAME_S)
