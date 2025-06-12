@@ -1,4 +1,4 @@
-#include "entities/player.h"
+#include "game/player.h"
 #include "engine/window.h"
 
 #define SPEED 5.0f

@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "entities/something.h"
+#include "game/something.h"
 
 void
 something_init(struct something_data *self) {

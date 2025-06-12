@@ -3,8 +3,8 @@
 #include "engine/arena.h"
 #include "engine/window.h"
 #include "engine/renderer.h"
-#include "entities/entities.h"
-#include "entities/player.h"
+#include "game/entities.h"
+#include "game/player.h"
 
 #define WINDOW_W (GAME_W_PIXEL * GAME_S)
 #define WINDOW_H (GAME_H_PIXEL * GAME_S)

@@ -90,7 +90,7 @@ for entity, body in entities_ir.items():
 
 entity_sources = {}
 for entity in entities_all:
-    entity_sources[entity] = "#include \"entities/" + entity + ".h\"\n\n"
+    entity_sources[entity] = "#include \"game/" + entity + ".h\"\n\n"
     entity_sources[entity] += "void\n" + entity + "_init(struct " + entity + "_data *self) {\n"
     entity_sources[entity] += "  (void)self;\n  log_warnlf(\"%s: not implemented\", __func__);\n}\n\n"
     entity_sources[entity] += "void\n" + entity + "_update(struct " + entity + "_data *self, float dt) {\n"
@@ -118,9 +118,9 @@ entities_h += "\n#endif/*__ENTITIES_H__*/\n"
 #print(entities_h)
 
 entities_c = "#include \"engine/arena.h\"\n"
-entities_c += "#include \"entities/entities.h\"\n"
+entities_c += "#include \"game/entities.h\"\n"
 for entity in entities_all:
-    entities_c += "#include \"entities/" + entity + ".h\"\n"
+    entities_c += "#include \"game/" + entity + ".h\"\n"
 entities_c += "\nstruct entities {\n"
 entities_c += "  struct arena *arena;\n"
 for entity in entities_soa:
@@ -196,7 +196,7 @@ entities_c += "}\n"
 #print(entities_c)
 
 
-path = "src/entities/entities.c"
+path = "src/game/entities.c"
 try:
     with open(path, "w") as f:
         f.write(entities_c)
@@ -204,7 +204,7 @@ try:
 except:
     print("couldn't open '", path, "'", sep="")
 
-path = "include/entities/entities.h"
+path = "include/game/entities.h"
 try:
     with open(path, "w") as f:
         f.write(entities_h)
@@ -213,7 +213,7 @@ except:
     print("couldn't open '", path, "'", sep="")
 
 for entity, header in entity_headers.items():
-    path = "include/entities/" + entity + ".h"
+    path = "include/game/" + entity + ".h"
     try:
         with open(path, "w") as f:
             f.write(header)
@@ -222,7 +222,7 @@ for entity, header in entity_headers.items():
         print("couldn't open '", path, "'", sep="")
 
 for entity, source in entity_sources.items():
-    path = "src/entities/" + entity + ".c"
+    path = "src/game/" + entity + ".c"
     if os.path.exists(path): continue
     try:
         with open(path, "w") as f:
@@ -238,8 +238,8 @@ try:
         for line in f:
             entity = line.strip()
             if not entity in entities_all:
-                os.remove("include/entities/" + entity + ".h")
-                os.remove("src/entities/" + entity + ".c")
+                os.remove("include/game/" + entity + ".h")
+                os.remove("src/game/" + entity + ".c")
 except:
     pass
 try:

@@ -1,7 +1,7 @@
 #include "engine/arena.h"
-#include "entities/entities.h"
-#include "entities/something.h"
-#include "entities/player.h"
+#include "game/entities.h"
+#include "game/something.h"
+#include "game/player.h"
 
 struct entities {
   struct arena *arena;
