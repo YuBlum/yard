@@ -11,11 +11,15 @@ player_init(struct player_data *self) {
 
 void
 player_update(struct player_data *self, float dt) {
-  self->position.x += (window_is_key_down(K_RIGHT) - window_is_key_down(K_LEFT)) * SPEED * dt;
-  self->position.y += (window_is_key_down(K_UP) - window_is_key_down(K_DOWN)) * SPEED * dt;
+  struct v2 direction = v2_unit(V2(
+    window_is_key_down(K_RIGHT) - window_is_key_down(K_LEFT),
+    window_is_key_down(K_UP)    - window_is_key_down(K_DOWN)
+  ));
+  self->position.x += direction.x * SPEED * dt;
+  self->position.y += direction.y * SPEED * dt;
 }
 
 void
 player_render(struct player_data *self) {
-  renderer_request_quads(1, &self->position, &V2(1.0f, 1.0f), &self->texture_position, &V2U(16, 16), &WHITE, &(float) { 1.0f });
+  renderer_request_quads(1, &self->position, &V2(1.0f, 1.0f), &self->texture_position, &V2U(16, 16), &WHITE, &(float) { 0.0f });
 }

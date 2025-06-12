@@ -37,8 +37,12 @@
 #define UNIT_PER_PIXEL 16.0f
 #define GAME_W_PIXEL 480
 #define GAME_H_PIXEL 270
+#define GAME_S 2
 #define GAME_W (GAME_W_PIXEL/UNIT_PER_PIXEL)
 #define GAME_H (GAME_H_PIXEL/UNIT_PER_PIXEL)
-#define GAME_S 2
+#define GAME_LEFT   (-GAME_W * 0.5f)
+#define GAME_RIGHT  (+GAME_W * 0.5f)
+#define GAME_BOTTOM (-GAME_H * 0.5f)
+#define GAME_TOP    (+GAME_H * 0.5f)
 
 #endif/*__CORE_H__*/

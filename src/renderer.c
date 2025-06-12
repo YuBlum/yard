@@ -43,16 +43,11 @@ struct renderer {
   uint32_t texture_atlas;
 };
 
-#define LEFT   (-GAME_W * 0.5f)
-#define RIGHT  (+GAME_W * 0.5f)
-#define BOTTOM (-GAME_H * 0.5f)
-#define TOP    (+GAME_H * 0.5f)
-
-static struct renderer renderer;
-static float projection[3*3] = {
-  +2.0f/(RIGHT-LEFT)        , +0.0f                     , +0.0f,
-  +0.0f                     , +2.0f/(TOP-BOTTOM)        , +0.0f,
-  -(RIGHT+LEFT)/(RIGHT-LEFT), -(TOP+BOTTOM)/(TOP-BOTTOM), +1.0f,
+static struct renderer g_renderer;
+static float g_projection[3*3] = {
+  +2.0f/(GAME_RIGHT-GAME_LEFT)                  , +0.0f                                         , +0.0f,
+  +0.0f                                         , +2.0f/(GAME_TOP-GAME_BOTTOM)                  , +0.0f,
+  -(GAME_RIGHT+GAME_LEFT)/(GAME_RIGHT-GAME_LEFT), -(GAME_TOP+GAME_BOTTOM)/(GAME_TOP-GAME_BOTTOM), +1.0f,
 };
 
 #define SHADER_LOG_CAPACITY 512
@@ -144,20 +139,20 @@ renderer_make(void) {
   log_infol("making renderer...");
   gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
   log_infol("loaded opengl functions");
-  renderer.sh_default = shader_program_make(
+  g_renderer.sh_default = shader_program_make(
     &SH_DEFAULT_VERT,
     &SH_DEFAULT_FRAG
   );
-  if (!renderer.sh_default) return false;
-  renderer.sh_default_proj = glGetUniformLocation(renderer.sh_default, "u_proj");
+  if (!g_renderer.sh_default) return false;
+  g_renderer.sh_default_proj = glGetUniformLocation(g_renderer.sh_default, "u_proj");
 #if DEV
-  if (renderer.sh_default_proj < 0) {
+  if (g_renderer.sh_default_proj < 0) {
     log_errorl("couldn't get 'u_proj' location from default shader");
     return false;
   }
 #endif
-  glUseProgram(renderer.sh_default);
-  glUniformMatrix3fv(renderer.sh_default_proj, 1, false, projection);
+  glUseProgram(g_renderer.sh_default);
+  glUniformMatrix3fv(g_renderer.sh_default_proj, 1, false, g_projection);
   log_infol("created default shader");
   int texture_atlas_width, texture_atlas_height, texture_atlas_channels;
   uint8_t *texture_atlas_data = stbi_load(
@@ -181,8 +176,8 @@ renderer_make(void) {
     return false;
   }
 #endif
-  glGenTextures(1, &renderer.texture_atlas);
-  glBindTexture(GL_TEXTURE_2D, renderer.texture_atlas);
+  glGenTextures(1, &g_renderer.texture_atlas);
+  glBindTexture(GL_TEXTURE_2D, g_renderer.texture_atlas);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ATLAS_SIZE, ATLAS_SIZE, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture_atlas_data);
@@ -194,9 +189,9 @@ renderer_make(void) {
   glGenBuffers(1, &ibo);
   glBindVertexArray(vao);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, sizeof (renderer.vertices), 0, GL_DYNAMIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof (g_renderer.vertices), 0, GL_DYNAMIC_DRAW);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (renderer.indices), 0, GL_DYNAMIC_DRAW);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof (g_renderer.indices), 0, GL_DYNAMIC_DRAW);
   glEnableVertexAttribArray(0);
   glEnableVertexAttribArray(1);
   glEnableVertexAttribArray(2);
@@ -220,27 +215,27 @@ compare_indices(const void *r0, const void *r1) {
 void
 renderer_submit(void) {
   // NOTE: maybe instead of sorting and resetting the batch every frame you can have 'permanent' quads
-  qsort(renderer.indices_to_sort, renderer.quads_amount, sizeof (struct index_sort), compare_indices);
-  for (uint32_t i = 0; i < renderer.quads_amount; i++) {
-    renderer.indices[i].i[0] = renderer.indices_to_sort[i].start + 0;
-    renderer.indices[i].i[1] = renderer.indices_to_sort[i].start + 1;
-    renderer.indices[i].i[2] = renderer.indices_to_sort[i].start + 2;
-    renderer.indices[i].i[3] = renderer.indices_to_sort[i].start + 2;
-    renderer.indices[i].i[4] = renderer.indices_to_sort[i].start + 3;
-    renderer.indices[i].i[5] = renderer.indices_to_sort[i].start + 0;
+  qsort(g_renderer.indices_to_sort, g_renderer.quads_amount, sizeof (struct index_sort), compare_indices);
+  for (uint32_t i = 0; i < g_renderer.quads_amount; i++) {
+    g_renderer.indices[i].i[0] = g_renderer.indices_to_sort[i].start + 0;
+    g_renderer.indices[i].i[1] = g_renderer.indices_to_sort[i].start + 1;
+    g_renderer.indices[i].i[2] = g_renderer.indices_to_sort[i].start + 2;
+    g_renderer.indices[i].i[3] = g_renderer.indices_to_sort[i].start + 2;
+    g_renderer.indices[i].i[4] = g_renderer.indices_to_sort[i].start + 3;
+    g_renderer.indices[i].i[5] = g_renderer.indices_to_sort[i].start + 0;
   }
   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
-  glBufferSubData(GL_ARRAY_BUFFER, 0, renderer.quads_amount * sizeof (struct quad_vertices), renderer.vertices);
-  glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, renderer.quads_amount * sizeof (struct quad_indices), renderer.indices);
-  glDrawElements(GL_TRIANGLES, renderer.quads_amount * 6, GL_UNSIGNED_INT, 0);
-  renderer.quads_amount = 0;
+  glBufferSubData(GL_ARRAY_BUFFER, 0, g_renderer.quads_amount * sizeof (struct quad_vertices), g_renderer.vertices);
+  glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, g_renderer.quads_amount * sizeof (struct quad_indices), g_renderer.indices);
+  glDrawElements(GL_TRIANGLES, g_renderer.quads_amount * 6, GL_UNSIGNED_INT, 0);
+  g_renderer.quads_amount = 0;
 }
 
 void
 renderer_request_quads(uint32_t amount, const struct v2 positions[amount], const struct v2 sizes[amount], const struct v2u texture_positions[amount], const struct v2u texture_sizes[amount], const struct color colors[amount], float depths[amount]) {
 #if DEV
-  if (renderer.quads_amount + amount >= QUAD_CAPACITY) {
+  if (g_renderer.quads_amount + amount >= QUAD_CAPACITY) {
     log_warnlf("%s: trying to request to much quads to rendering. increase QUAD_CAPACITY", __func__);
     return;
   }
@@ -252,22 +247,22 @@ renderer_request_quads(uint32_t amount, const struct v2 positions[amount], const
     size_half = v2_muls(sizes[i], 0.5f);
     tpos = v2_muls(V2U_V2(texture_positions[i]), ATLAS_PIXEL);
     tsiz = v2_muls(V2U_V2(texture_sizes[i]), ATLAS_PIXEL);
-    renderer.vertices[renderer.quads_amount + i].v[0].position = v2_add(positions[i], V2(-size_half.x, -size_half.y));
-    renderer.vertices[renderer.quads_amount + i].v[1].position = v2_add(positions[i], V2(+size_half.x, -size_half.y));
-    renderer.vertices[renderer.quads_amount + i].v[2].position = v2_add(positions[i], V2(+size_half.x, +size_half.y));
-    renderer.vertices[renderer.quads_amount + i].v[3].position = v2_add(positions[i], V2(-size_half.x, +size_half.y));
-    renderer.vertices[renderer.quads_amount + i].v[0].texcoord = v2_add(tpos, V2(0.0f  , tsiz.y));
-    renderer.vertices[renderer.quads_amount + i].v[1].texcoord = v2_add(tpos, V2(tsiz.x, tsiz.y));
-    renderer.vertices[renderer.quads_amount + i].v[2].texcoord = v2_add(tpos, V2(tsiz.x, 0.0f  ));
-    renderer.vertices[renderer.quads_amount + i].v[3].texcoord = v2_add(tpos, V2(0.0f  , 0.0f  ));
-    renderer.vertices[renderer.quads_amount + i].v[0].blendcol = colors[i];
-    renderer.vertices[renderer.quads_amount + i].v[1].blendcol = colors[i];
-    renderer.vertices[renderer.quads_amount + i].v[2].blendcol = colors[i];
-    renderer.vertices[renderer.quads_amount + i].v[3].blendcol = colors[i];
+    g_renderer.vertices[g_renderer.quads_amount + i].v[0].position = v2_add(positions[i], V2(-size_half.x, -size_half.y));
+    g_renderer.vertices[g_renderer.quads_amount + i].v[1].position = v2_add(positions[i], V2(+size_half.x, -size_half.y));
+    g_renderer.vertices[g_renderer.quads_amount + i].v[2].position = v2_add(positions[i], V2(+size_half.x, +size_half.y));
+    g_renderer.vertices[g_renderer.quads_amount + i].v[3].position = v2_add(positions[i], V2(-size_half.x, +size_half.y));
+    g_renderer.vertices[g_renderer.quads_amount + i].v[0].texcoord = v2_add(tpos, V2(0.0f  , tsiz.y));
+    g_renderer.vertices[g_renderer.quads_amount + i].v[1].texcoord = v2_add(tpos, V2(tsiz.x, tsiz.y));
+    g_renderer.vertices[g_renderer.quads_amount + i].v[2].texcoord = v2_add(tpos, V2(tsiz.x, 0.0f  ));
+    g_renderer.vertices[g_renderer.quads_amount + i].v[3].texcoord = v2_add(tpos, V2(0.0f  , 0.0f  ));
+    g_renderer.vertices[g_renderer.quads_amount + i].v[0].blendcol = colors[i];
+    g_renderer.vertices[g_renderer.quads_amount + i].v[1].blendcol = colors[i];
+    g_renderer.vertices[g_renderer.quads_amount + i].v[2].blendcol = colors[i];
+    g_renderer.vertices[g_renderer.quads_amount + i].v[3].blendcol = colors[i];
   }
   for (uint32_t i = 0; i < amount; i++) {
-    renderer.indices_to_sort[renderer.quads_amount + i].depth = depths[i];
-    renderer.indices_to_sort[renderer.quads_amount + i].start = (renderer.quads_amount + i) * 4;
+    g_renderer.indices_to_sort[g_renderer.quads_amount + i].depth = depths[i];
+    g_renderer.indices_to_sort[g_renderer.quads_amount + i].start = (g_renderer.quads_amount + i) * 4;
   }
-  renderer.quads_amount += amount;
+  g_renderer.quads_amount += amount;
 }

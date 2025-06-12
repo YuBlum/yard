@@ -12,20 +12,20 @@ struct window {
   float time;
 };
 
-static struct window window;
+static struct window g_window;
 
 static void
 key_callback(GLFWwindow* _window, int key, int _scancode, int action, int _mods) {
   (void)_window; (void)_scancode; (void) _mods;
   if (action != GLFW_PRESS && action != GLFW_RELEASE) return;
   switch (key) {
-    case GLFW_KEY_ESCAPE: window.keys[K_EXIT]  = action == GLFW_PRESS; break;
-    case GLFW_KEY_RIGHT:  window.keys[K_RIGHT] = action == GLFW_PRESS; break;
-    case GLFW_KEY_LEFT:   window.keys[K_LEFT]  = action == GLFW_PRESS; break;
-    case GLFW_KEY_UP:     window.keys[K_UP]    = action == GLFW_PRESS; break;
-    case GLFW_KEY_DOWN:   window.keys[K_DOWN]  = action == GLFW_PRESS; break;
-    case GLFW_KEY_Z:      window.keys[K_A]     = action == GLFW_PRESS; break;
-    case GLFW_KEY_X:      window.keys[K_B]     = action == GLFW_PRESS; break;
+    case GLFW_KEY_ESCAPE: g_window.keys[K_EXIT]  = action == GLFW_PRESS; break;
+    case GLFW_KEY_RIGHT:  g_window.keys[K_RIGHT] = action == GLFW_PRESS; break;
+    case GLFW_KEY_LEFT:   g_window.keys[K_LEFT]  = action == GLFW_PRESS; break;
+    case GLFW_KEY_UP:     g_window.keys[K_UP]    = action == GLFW_PRESS; break;
+    case GLFW_KEY_DOWN:   g_window.keys[K_DOWN]  = action == GLFW_PRESS; break;
+    case GLFW_KEY_Z:      g_window.keys[K_A]     = action == GLFW_PRESS; break;
+    case GLFW_KEY_X:      g_window.keys[K_B]     = action == GLFW_PRESS; break;
   }
 }
 
@@ -41,39 +41,39 @@ window_make(uint32_t width, uint32_t height) {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  window.handle = glfwCreateWindow(width, height, "Yet Another Roguelike-ish Dungeon", 0, 0);
-  if (!window.handle) {
+  g_window.handle = glfwCreateWindow(width, height, "Yet Another Roguelike-ish Dungeon", 0, 0);
+  if (!g_window.handle) {
     log_errorl("couldn't make window handle");
     return false;
   }
-  glfwMakeContextCurrent(window.handle);
+  glfwMakeContextCurrent(g_window.handle);
   log_infolf("window created with %d %d dimensions", width, height);
   const GLFWvidmode *vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
   if (vidmode) {
-    glfwSetWindowPos(window.handle, vidmode->width / 2 - width / 2, vidmode->height / 2 - height / 2);
+    glfwSetWindowPos(g_window.handle, vidmode->width / 2 - width / 2, vidmode->height / 2 - height / 2);
     log_infol("window centered");
   } else {
     log_warnl("couldn't center window");
   }
-  (void)memset(window.keys, false, sizeof (bool) * KEY_AMOUNT);
-  (void)glfwSetKeyCallback(window.handle, key_callback);
+  (void)memset(g_window.keys, false, sizeof (bool) * KEY_AMOUNT);
+  (void)glfwSetKeyCallback(g_window.handle, key_callback);
   log_infol("window input setup");
-  window.time = glfwGetTime();
+  g_window.time = glfwGetTime();
   log_infol("window creation complete!");
   return true;
 }
 
 void
 window_close(void) {
-  (void)glfwSetWindowShouldClose(window.handle, true);
+  (void)glfwSetWindowShouldClose(g_window.handle, true);
 }
 
 bool
 window_is_running(void) {
-  memcpy(window.pkeys, window.keys, sizeof (bool) * KEY_AMOUNT);
+  memcpy(g_window.pkeys, g_window.keys, sizeof (bool) * KEY_AMOUNT);
   glfwPollEvents();
-  glfwSwapBuffers(window.handle);
-  return !glfwWindowShouldClose(window.handle);
+  glfwSwapBuffers(g_window.handle);
+  return !glfwWindowShouldClose(g_window.handle);
 }
 
 bool
@@ -84,7 +84,7 @@ window_is_key_press(enum key key) {
     return false;
   }
 #endif
-  return !window.pkeys[key] && window.keys[key];
+  return !g_window.pkeys[key] && g_window.keys[key];
 }
 
 bool
@@ -95,7 +95,7 @@ window_is_key_down(enum key key) {
     return false;
   }
 #endif
-  return window.keys[key];
+  return g_window.keys[key];
 }
 
 bool
@@ -106,12 +106,12 @@ window_is_key_up(enum key key) {
     return false;
   }
 #endif
-  return !window.keys[key];
+  return !g_window.keys[key];
 }
 
 float
 window_get_delta_time(void) {
-  float prv_time = window.time;
-  window.time = glfwGetTime();
-  return window.time - prv_time;
+  float prv_time = g_window.time;
+  g_window.time = glfwGetTime();
+  return g_window.time - prv_time;
 }

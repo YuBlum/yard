@@ -32,6 +32,12 @@ something_update(struct something_data *self, float dt) {
     self->position[i].x += self->direction[i].x * dt;
     self->position[i].y += self->direction[i].y * dt;
   }
+  for (uint32_t i = 0; i < self->amount; i++) {
+    if (self->position[i].y + self->size[i].y * 0.5f > GAME_TOP ||
+        self->position[i].y - self->size[i].y * 0.5f < GAME_BOTTOM) self->direction[i].y *= -1;
+    if (self->position[i].x + self->size[i].x * 0.5f > GAME_RIGHT ||
+        self->position[i].x - self->size[i].x * 0.5f < GAME_LEFT) self->direction[i].x *= -1;
+  }
 }
 
 void
