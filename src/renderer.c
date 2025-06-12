@@ -28,10 +28,15 @@ struct quad_indices {
   uint32_t i[6];
 };
 
+struct index_sort {
+  uint32_t start;
+  float depth;
+};
+
 struct renderer {
   struct quad_vertices vertices[QUAD_CAPACITY];
   struct quad_indices indices[QUAD_CAPACITY];
-  float indices_depth[QUAD_CAPACITY];
+  struct index_sort indices_to_sort[QUAD_CAPACITY];
   uint32_t quads_amount;
   uint32_t sh_default;
   int32_t  sh_default_proj;
@@ -205,8 +210,8 @@ renderer_make(void) {
 
 static int
 compare_indices(const void *r0, const void *r1) {
-  float d0 = renderer.indices_depth[(size_t)((const struct quad_indices *)r0 - renderer.indices)];
-  float d1 = renderer.indices_depth[(size_t)((const struct quad_indices *)r1 - renderer.indices)];
+  float d0 = ((const struct index_sort *)r0)->depth;
+  float d1 = ((const struct index_sort *)r1)->depth;
   if (d1 < d0) return -1;
   if (d1 > d0) return +1;
   return 0;
@@ -215,8 +220,16 @@ compare_indices(const void *r0, const void *r1) {
 void
 renderer_submit(void) {
   // NOTE: maybe instead of sorting and resetting the batch every frame you can have 'permanent' quads
-  qsort(renderer.indices,  renderer.quads_amount, sizeof (struct quad_indices), compare_indices);
-  glClearColor(0.8f, 0.2f, 0.2f, 1.0f);
+  qsort(renderer.indices_to_sort, renderer.quads_amount, sizeof (struct index_sort), compare_indices);
+  for (uint32_t i = 0; i < renderer.quads_amount; i++) {
+    renderer.indices[i].i[0] = renderer.indices_to_sort[i].start + 0;
+    renderer.indices[i].i[1] = renderer.indices_to_sort[i].start + 1;
+    renderer.indices[i].i[2] = renderer.indices_to_sort[i].start + 2;
+    renderer.indices[i].i[3] = renderer.indices_to_sort[i].start + 2;
+    renderer.indices[i].i[4] = renderer.indices_to_sort[i].start + 3;
+    renderer.indices[i].i[5] = renderer.indices_to_sort[i].start + 0;
+  }
+  glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
   glBufferSubData(GL_ARRAY_BUFFER, 0, renderer.quads_amount * sizeof (struct quad_vertices), renderer.vertices);
   glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, renderer.quads_amount * sizeof (struct quad_indices), renderer.indices);
@@ -252,14 +265,9 @@ renderer_request_quads(uint32_t amount, const struct v2 positions[amount], const
     renderer.vertices[renderer.quads_amount + i].v[2].blendcol = colors[i];
     renderer.vertices[renderer.quads_amount + i].v[3].blendcol = colors[i];
   }
-  for (uint32_t i = 0; i < amount; i++) renderer.indices_depth[renderer.quads_amount + i] = depths[i];
-  for (uint32_t i = renderer.quads_amount; i < renderer.quads_amount + amount; i++) {
-    renderer.indices[i].i[0] = i * 4 + 0;
-    renderer.indices[i].i[1] = i * 4 + 1;
-    renderer.indices[i].i[2] = i * 4 + 2;
-    renderer.indices[i].i[3] = i * 4 + 2;
-    renderer.indices[i].i[4] = i * 4 + 3;
-    renderer.indices[i].i[5] = i * 4 + 0;
+  for (uint32_t i = 0; i < amount; i++) {
+    renderer.indices_to_sort[renderer.quads_amount + i].depth = depths[i];
+    renderer.indices_to_sort[renderer.quads_amount + i].start = (renderer.quads_amount + i) * 4;
   }
   renderer.quads_amount += amount;
 }
