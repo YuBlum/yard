@@ -1,9 +1,10 @@
 #ifndef __ENTITIES_H__
 #define __ENTITIES_H__
 
-struct entities_layout /*{
-  uint32_t foo_amount;
-}*/;
+struct entities_layout {
+  uint32_t something_amount;
+  bool has_player;
+};
 
 bool entities_make(void);
 bool entities_layout_set(const struct entities_layout *layout);

@@ -16,7 +16,12 @@ INCS="
 -I./include
 "
 
-rm -f ./$OUT
-./generate_entities.py
-cc $FLAGS $DEF $LIBS $INCS $SRC -o $OUT
-./$OUT
+read -r UPDATE_ENTITIES
+if [[ $UPDATE_ENTITIES = "e" ]]; then
+  ./generate_entities.py
+else
+  rm -f ./$OUT
+  cc $FLAGS $DEF $LIBS $INCS $SRC -o $OUT
+  ./$OUT
+fi
+

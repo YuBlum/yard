@@ -6,9 +6,8 @@
 
 struct player_data {
   struct v2 position;
-  struct v2 size;
   struct v2u texture_position;
-  struct v2u texture_size;
+  float depth;
 };
 
 void player_init(struct player_data *self);

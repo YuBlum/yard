@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import tomllib
+import os
 
 entities_toml_file = "./entities.toml"
 
@@ -84,8 +85,21 @@ for entity, body in entities_ir.items():
     entity_headers[entity] += "void " + entity + "_render(struct " + entity + "_data *self);\n"
     entity_headers[entity] += "\n#endif/*" + header_guard + "*/\n"
 
-for entity, body in entity_headers.items():
-    print(body)
+#for entity, body in entity_headers.items():
+#    print(body)
+
+entity_sources = {}
+for entity in entities_all:
+    entity_sources[entity] = "#include \"yard/entities/" + entity + ".h\"\n\n"
+    entity_sources[entity] += "void\n" + entity + "_init(struct " + entity + "_data *self) {\n"
+    entity_sources[entity] += "  (void)self;\n  log_warnlf(\"%s: not implemented\", __func__);\n}\n\n"
+    entity_sources[entity] += "void\n" + entity + "_update(struct " + entity + "_data *self, float dt) {\n"
+    entity_sources[entity] += "  (void)self; (void)dt;\n  log_warnlf(\"%s: not implemented\", __func__);\n}\n\n"
+    entity_sources[entity] += "void\n" + entity + "_render(struct " + entity + "_data *self) {\n"
+    entity_sources[entity] += "  (void)self;\n  log_warnlf(\"%s: not implemented\", __func__);\n}\n"
+
+#for entity, body in entity_sources.items():
+#    print(body)
 
 entities_h = "#ifndef __ENTITIES_H__\n"
 entities_h += "#define __ENTITIES_H__\n\n"
@@ -101,7 +115,7 @@ entities_h += "void entities_update(float dt);\n"
 entities_h += "void entities_render(void);\n"
 entities_h += "\n#endif/*__ENTITIES_H__*/\n"
 
-print(entities_h)
+#print(entities_h)
 
 entities_c = "#include \"yard/arena.h\"\n"
 entities_c += "#include \"yard/entities/entities.h\"\n"
@@ -128,17 +142,19 @@ entities_c += "bool\nentities_layout_set(const struct entities_layout *layout) {
 entities_c += "  if (!arena_clear(entities.arena)) { log_errorl(\"couldn't clear entities arena\"); return false; }\n"
 for entity, body in entities_ir.items():
     if "amount" in body:
+        entities_c += "  if (layout->" + entity + "_amount) {\n"
+        entities_c += "    entities." + entity + "_data.amount = layout->" + entity + "_amount;\n"
         for name, typ in body.items():
             if name == "amount": continue
-            entities_c += "  if (layout->" + entity + "_amount) {\n"
             entities_c += "    entities." + entity + "_data." + name + " = arena_push_array(entities.arena, false, " + typ + ", layout->" + entity + "_amount);\n"
             entities_c += "    if (!entities." + entity + "_data." + name + ") {\n"
             entities_c += "      log_errorl(\"couldn't allocate " + entity + " " + name + " data\");\n"
             entities_c += "      return false;\n"
             entities_c += "    }\n"
-            entities_c += "  } else {\n"
-            entities_c += "    entities." + entity + "_data.amount = 0;\n"
-            entities_c += "  }\n"
+        entities_c += "    " + entity + "_init(&entities." + entity + "_data);\n"
+        entities_c += "  } else {\n"
+        entities_c += "    entities." + entity + "_data.amount = 0;\n"
+        entities_c += "  }\n"
     else:
         entities_c += "  if (layout->has_" + entity + ") {\n"
         entities_c += "    entities." + entity + "_data = arena_push_type(entities.arena, false, " + typ + ");\n"
@@ -146,6 +162,7 @@ for entity, body in entities_ir.items():
         entities_c += "      log_errorl(\"couldn't allocate " + entity + " data\");\n"
         entities_c += "      return false;\n"
         entities_c += "    }\n"
+        entities_c += "    " + entity + "_init(entities." + entity + "_data);\n"
         entities_c += "  } else {\n"
         entities_c += "    entities." + entity + "_data = 0;\n"
         entities_c += "  }\n"
@@ -176,4 +193,61 @@ for entity in entities_unique:
     entities_c += "  if (entities." + entity + "_data) " + entity + "_render(entities." + entity + "_data);\n"
 entities_c += "}\n"
 
-print(entities_c)
+#print(entities_c)
+
+
+path = "src/entities/entities.c"
+try:
+    with open(path, "w") as f:
+        f.write(entities_c)
+        pass
+except:
+    print("couldn't open '", path, "'", sep="")
+
+path = "include/yard/entities/entities.h"
+try:
+    with open(path, "w") as f:
+        f.write(entities_h)
+        pass
+except:
+    print("couldn't open '", path, "'", sep="")
+
+for entity, header in entity_headers.items():
+    path = "include/yard/entities/" + entity + ".h"
+    try:
+        with open(path, "w") as f:
+            f.write(header)
+            pass
+    except:
+        print("couldn't open '", path, "'", sep="")
+
+for entity, source in entity_sources.items():
+    path = "src/entities/" + entity + ".c"
+    if os.path.exists(path): continue
+    try:
+        with open(path, "w") as f:
+            f.write(source)
+            pass
+    except:
+        print("couldn't open '", path, "'", sep="")
+
+entities_verification = set()
+path = "./.entities"
+try:
+    with open(path, "w+") as f:
+        for line in f:
+            entity = line.strip()
+            if not entity in entities_all:
+                os.remove("include/yard/entities/" + entity + ".h")
+                os.remove("src/entities/" + entity + ".c")
+        for entity in entities_all:
+            f.write(entity + "\n")
+except:
+    print("couldn't open '", path, "'", sep="")
+
+print("entities updated")
+
+# TODO: this file creates a '.entities' file that keep track of the 'entities.toml' file date and hour of modification, then make this script only be ran if the date and time in '.entities' is different than the current date and time on 'entities.toml' file
+# TODO: maybe add the capacity of adding functions to entities in the entities.toml, then those functions are generated in their respective .c and .h files
+# TODO: make the 'struct entities' be defined on entities.h and create a function or macro using _Generic for getting a specific type of entity 
+

@@ -1,3 +1,5 @@
+#include <stdlib.h>
+#include <time.h>
 #include "yard/arena.h"
 #include "yard/window.h"
 #include "yard/renderer.h"
@@ -9,6 +11,7 @@
 
 int
 main(void) {
+  srand(time(0));
   struct arena *tmp_arena = arena_make(0, 0);
   if (!tmp_arena) {
     log_errorl("couldn't make main temporary arena");
@@ -17,7 +20,7 @@ main(void) {
   if (!window_make(WINDOW_W, WINDOW_H)) return 1;
   if (!renderer_make()) return 1;
   if (!entities_make()) return 1;
-  if (!entities_layout_set(0)) return 1; // TODO: remove this from here
+  if (!entities_layout_set(&(struct entities_layout) { .has_player = true, .something_amount = 10 })) return 1; // TODO: remove this from here
   while (window_is_running()) {
     if (window_is_key_down(K_EXIT)) window_close();
     entities_update(window_get_delta_time());

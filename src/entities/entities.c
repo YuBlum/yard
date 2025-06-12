@@ -1,17 +1,15 @@
 #include "yard/arena.h"
 #include "yard/entities/entities.h"
+#include "yard/entities/something.h"
 #include "yard/entities/player.h"
-
-// TODO: generate struct entities_layout, struct entities, entities_layout_set and maybe everything in this file with a script
 
 struct entities {
   struct arena *arena;
+  struct something_data something_data;
   struct player_data *player_data;
-  // struct foo_data *foo_data;
-  // uint32_t foo_amount;
 };
 
-struct entities entities;
+static struct entities entities;
 
 bool
 entities_make(void) {
@@ -20,22 +18,64 @@ entities_make(void) {
     log_errorl("couldn't make entities arena");
     return false;
   }
+  log_infol("entities manager creation completed!");
   return true;
 }
 
 bool
 entities_layout_set(const struct entities_layout *layout) {
   if (!arena_clear(entities.arena)) { log_errorl("couldn't clear entities arena"); return false; }
-  // entities.foo_data.array0 = arena_push_array(entities.arena, array0_type, layout->foo_amount);
-  // if (!entities.foo_data.array0) { log and return }
-  // entities.foo_data.array1 = arena_push_array(entities.arena, array1_type, layout->foo_amount);
-  // if (!entities.foo_data.array1) { log and return }
-  // ...
-  // the player is a special case because you'll only have one of them:
-  (void)layout;
-  entities.player_data = arena_push_type(entities.arena, false, struct player_data);
-  if (!entities.player_data) { log_errorl("couldn't allocate player data"); return false; }
-  player_init(entities.player_data);
+  if (layout->something_amount) {
+    entities.something_data.amount = layout->something_amount;
+    entities.something_data.position = arena_push_array(entities.arena, false, struct v2, layout->something_amount);
+    if (!entities.something_data.position) {
+      log_errorl("couldn't allocate something position data");
+      return false;
+    }
+    entities.something_data.size = arena_push_array(entities.arena, false, struct v2, layout->something_amount);
+    if (!entities.something_data.size) {
+      log_errorl("couldn't allocate something size data");
+      return false;
+    }
+    entities.something_data.texture_position = arena_push_array(entities.arena, false, struct v2u, layout->something_amount);
+    if (!entities.something_data.texture_position) {
+      log_errorl("couldn't allocate something texture_position data");
+      return false;
+    }
+    entities.something_data.texture_size = arena_push_array(entities.arena, false, struct v2u, layout->something_amount);
+    if (!entities.something_data.texture_size) {
+      log_errorl("couldn't allocate something texture_size data");
+      return false;
+    }
+    entities.something_data.color = arena_push_array(entities.arena, false, struct color, layout->something_amount);
+    if (!entities.something_data.color) {
+      log_errorl("couldn't allocate something color data");
+      return false;
+    }
+    entities.something_data.depth = arena_push_array(entities.arena, false, float, layout->something_amount);
+    if (!entities.something_data.depth) {
+      log_errorl("couldn't allocate something depth data");
+      return false;
+    }
+    entities.something_data.direction = arena_push_array(entities.arena, false, struct v2, layout->something_amount);
+    if (!entities.something_data.direction) {
+      log_errorl("couldn't allocate something direction data");
+      return false;
+    }
+    something_init(&entities.something_data);
+  } else {
+    entities.something_data.amount = 0;
+  }
+  if (layout->has_player) {
+    entities.player_data = arena_push_type(entities.arena, false, uint32_t);
+    if (!entities.player_data) {
+      log_errorl("couldn't allocate player data");
+      return false;
+    }
+    player_init(entities.player_data);
+  } else {
+    entities.player_data = 0;
+  }
   return true;
 }
 
@@ -47,6 +87,7 @@ entities_update(float dt) {
     return;
   }
 #endif
+  if (entities.something_data.amount) something_update(&entities.something_data, dt);
   if (entities.player_data) player_update(entities.player_data, dt);
 }
 
@@ -58,5 +99,6 @@ entities_render(void) {
     return;
   }
 #endif
+  if (entities.something_data.amount) something_render(&entities.something_data);
   if (entities.player_data) player_render(entities.player_data);
 }

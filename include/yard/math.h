@@ -4,6 +4,8 @@
 #include <math.h>
 #include <stdint.h>
 
+#define PI 3.14159265358979323846
+
 struct v2 { float x, y; };
 #define V2(x, y) ((struct v2) {x, y})
 #define V2S(x) ((struct v2) {x, x})
