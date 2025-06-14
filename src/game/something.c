@@ -42,5 +42,13 @@ something_update(struct something_data *self, float dt) {
 
 void
 something_render(struct something_data *self) {
-  renderer_request_quads(self->amount, self->position, self->size, self->texture_position, self->texture_size, self->color, self->depth);
+  renderer_request_quads(
+    self->amount,
+    self->position,
+    self->size,
+    self->texture_position,
+    self->texture_size,
+    self->color,
+    self->depth
+  );
 }

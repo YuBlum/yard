@@ -32,7 +32,6 @@
 "main() {\n" \
 "  f_color = texture(texture_atlas, v_texcoord);\n" \
 "  f_color.rgb *= v_blendcol;\n" \
-"  if (f_color.a < 0.1) discard;" \
 "}\n")
 
 #endif/*__SHADERS_H__*/

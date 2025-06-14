@@ -199,6 +199,8 @@ renderer_make(void) {
   glVertexAttribPointer(1, 2, GL_FLOAT, false, sizeof (struct vertex), (void *)offsetof (struct vertex, texcoord));
   glVertexAttribPointer(2, 3, GL_FLOAT, false, sizeof (struct vertex), (void *)offsetof (struct vertex, blendcol));
   log_infol("vao, vbo and ibo created successfully");
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
   log_infol("renderer creation complete!");
   return true;
 }
@@ -224,7 +226,7 @@ renderer_submit(void) {
     g_renderer.indices[i].i[4] = g_renderer.indices_to_sort[i].start + 3;
     g_renderer.indices[i].i[5] = g_renderer.indices_to_sort[i].start + 0;
   }
-  glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+  glClearColor(0.392f, 0.584f, 0.929f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
   glBufferSubData(GL_ARRAY_BUFFER, 0, g_renderer.quads_amount * sizeof (struct quad_vertices), g_renderer.vertices);
   glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, g_renderer.quads_amount * sizeof (struct quad_indices), g_renderer.indices);
@@ -233,10 +235,10 @@ renderer_submit(void) {
 }
 
 void
-renderer_request_quads(uint32_t amount, const struct v2 positions[amount], const struct v2 sizes[amount], const struct v2u texture_positions[amount], const struct v2u texture_sizes[amount], const struct color colors[amount], float depths[amount]) {
+renderer_request_quads(uint32_t amount, const struct v2 positions[amount], const struct v2 sizes[amount], const struct v2u texture_positions[amount], const struct v2u texture_sizes[amount], const struct color colors[amount], const float depths[amount]) {
 #if DEV
   if (g_renderer.quads_amount + amount >= QUAD_CAPACITY) {
-    log_warnlf("%s: trying to request to much quads to rendering. increase QUAD_CAPACITY", __func__);
+    log_warnlf("%s: trying to request to much quads for rendering. increase QUAD_CAPACITY", __func__);
     return;
   }
 #endif
@@ -245,16 +247,20 @@ renderer_request_quads(uint32_t amount, const struct v2 positions[amount], const
   struct v2 tsiz;
   for (uint32_t i = 0; i < amount; i++) {
     size_half = v2_muls(sizes[i], 0.5f);
-    tpos = v2_muls(V2U_V2(texture_positions[i]), ATLAS_PIXEL);
-    tsiz = v2_muls(V2U_V2(texture_sizes[i]), ATLAS_PIXEL);
     g_renderer.vertices[g_renderer.quads_amount + i].v[0].position = v2_add(positions[i], V2(-size_half.x, -size_half.y));
     g_renderer.vertices[g_renderer.quads_amount + i].v[1].position = v2_add(positions[i], V2(+size_half.x, -size_half.y));
     g_renderer.vertices[g_renderer.quads_amount + i].v[2].position = v2_add(positions[i], V2(+size_half.x, +size_half.y));
     g_renderer.vertices[g_renderer.quads_amount + i].v[3].position = v2_add(positions[i], V2(-size_half.x, +size_half.y));
+  }
+  for (uint32_t i = 0; i < amount; i++) {
+    tpos = v2_muls(V2U_V2(texture_positions[i]), ATLAS_PIXEL);
+    tsiz = v2_muls(V2U_V2(texture_sizes[i]), ATLAS_PIXEL);
     g_renderer.vertices[g_renderer.quads_amount + i].v[0].texcoord = v2_add(tpos, V2(0.0f  , tsiz.y));
     g_renderer.vertices[g_renderer.quads_amount + i].v[1].texcoord = v2_add(tpos, V2(tsiz.x, tsiz.y));
     g_renderer.vertices[g_renderer.quads_amount + i].v[2].texcoord = v2_add(tpos, V2(tsiz.x, 0.0f  ));
     g_renderer.vertices[g_renderer.quads_amount + i].v[3].texcoord = v2_add(tpos, V2(0.0f  , 0.0f  ));
+  }
+  for (uint32_t i = 0; i < amount; i++) {
     g_renderer.vertices[g_renderer.quads_amount + i].v[0].blendcol = colors[i];
     g_renderer.vertices[g_renderer.quads_amount + i].v[1].blendcol = colors[i];
     g_renderer.vertices[g_renderer.quads_amount + i].v[2].blendcol = colors[i];
@@ -265,4 +271,33 @@ renderer_request_quads(uint32_t amount, const struct v2 positions[amount], const
     g_renderer.indices_to_sort[g_renderer.quads_amount + i].start = (g_renderer.quads_amount + i) * 4;
   }
   g_renderer.quads_amount += amount;
+}
+
+void
+renderer_request_quad(struct v2 position, struct v2 size, struct v2u texture_position, struct v2u texture_size, struct color color, float depth) {
+#if DEV
+  if (g_renderer.quads_amount + 1 >= QUAD_CAPACITY) {
+    log_warnlf("%s: trying to request to much quads for rendering. increase QUAD_CAPACITY", __func__);
+    return;
+  }
+#endif
+  struct v2 size_half = v2_muls(size, 0.5f);
+  struct v2 tpos = v2_muls(V2U_V2(texture_position), ATLAS_PIXEL);
+  struct v2 tsiz = v2_muls(V2U_V2(texture_size), ATLAS_PIXEL);
+  struct vertex *vertices = g_renderer.vertices[g_renderer.quads_amount].v;
+  vertices[0].position = v2_add(position, V2(-size_half.x, -size_half.y));
+  vertices[1].position = v2_add(position, V2(+size_half.x, -size_half.y));
+  vertices[2].position = v2_add(position, V2(+size_half.x, +size_half.y));
+  vertices[3].position = v2_add(position, V2(-size_half.x, +size_half.y));
+  vertices[0].texcoord = v2_add(tpos, V2(0.0f  , tsiz.y));
+  vertices[1].texcoord = v2_add(tpos, V2(tsiz.x, tsiz.y));
+  vertices[2].texcoord = v2_add(tpos, V2(tsiz.x, 0.0f  ));
+  vertices[3].texcoord = v2_add(tpos, V2(0.0f  , 0.0f  ));
+  vertices[0].blendcol = color;
+  vertices[1].blendcol = color;
+  vertices[2].blendcol = color;
+  vertices[3].blendcol = color;
+  g_renderer.indices_to_sort[g_renderer.quads_amount].depth = depth;
+  g_renderer.indices_to_sort[g_renderer.quads_amount].start = g_renderer.quads_amount * 4;
+  g_renderer.quads_amount++;
 }

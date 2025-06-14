@@ -20,7 +20,10 @@ main(void) {
   if (!window_make(WINDOW_W, WINDOW_H)) return 1;
   if (!renderer_make()) return 1;
   if (!entities_make()) return 1;
-  if (!entities_layout_set(&(struct entities_layout) { .has_player = true, .something_amount = 10 })) return 1; // TODO: remove this from here
+  if (!entities_layout_set(&(struct entities_layout) {
+    .has_player = true,
+    .something_amount = 1000,
+  })) return 1; // TODO: remove this from here
   while (window_is_running()) {
     if (window_is_key_down(K_EXIT)) window_close();
     entities_update(window_get_delta_time());
