@@ -12,6 +12,36 @@
 
 int
 main(void) {
+  int *numbers = arena_array_make(0, int);
+  arena_array_push(numbers, 10);
+  arena_array_push(numbers, 20);
+  arena_array_push(numbers, 30);
+  arena_array_push(numbers, 40);
+  arena_array_push(numbers, 50);
+  arena_array_push(numbers, 60);
+  arena_array_push(numbers, 70);
+  for (uint32_t i = 0; i < arena_array_length(numbers); i++) {
+    log_infolf("numbers[%u] = %u", i, numbers[i]);
+  }
+  log_infol("======================");
+  arena_array_pop(numbers);
+  arena_array_pop(numbers);
+  arena_array_pop(numbers);
+  arena_array_push(numbers, 80);
+  arena_array_push(numbers, 90);
+  for (uint32_t i = 0; i < arena_array_length(numbers); i++) {
+    log_infolf("numbers[%u] = %u", i, numbers[i]);
+  }
+  log_infol("======================");
+  arena_array_clear(numbers);
+  arena_array_push(numbers, 100);
+  arena_array_push(numbers, 110);
+  arena_array_push(numbers, 120);
+  for (uint32_t i = 0; i < arena_array_length(numbers); i++) {
+    log_infolf("numbers[%u] = %u", i, numbers[i]);
+  }
+  (void)arena_array_destroy(numbers);
+  return 0;
   srand(time(0));
   struct arena *tmp_arena = arena_make(0, 0);
   if (!tmp_arena) {

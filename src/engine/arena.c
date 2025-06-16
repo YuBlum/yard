@@ -2,16 +2,6 @@
 #include <string.h>
 #include "engine/arena.h"
 
-struct arena {
-  size_t capacity;
-  size_t top;
-  size_t position;
-  size_t position_prv;
-  size_t alignment;
-  uint8_t *base;
-  uint8_t data[];
-};
-
 #if DEV
 /* NOTE: assumes non-zero alignment; if 0 is passed, ensure it is handled later */
 static inline bool
@@ -39,6 +29,7 @@ arena_make(size_t capacity, size_t alignment) {
   arena->capacity = capacity;
   arena->position = 0;
   arena->position_prv = 0;
+  arena->array_length = 0;
   arena->top = 0;
   arena->base = arena->data;
   return arena;
@@ -242,3 +233,4 @@ arena_scratch_end(struct arena *arena, struct arena_state *state) {
   *state = (struct arena_state) { 0 };
   return true;
 }
+
