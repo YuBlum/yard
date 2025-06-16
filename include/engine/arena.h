@@ -51,15 +51,20 @@ __arena_array_make__(size_t capacity, size_t alignment) {
   if (!arena) return 0;
   return arena ? arena + 1 : 0;
 }
-#define arena_array_make(capacity, T) __arena_array_make__(capacity * sizeof (T), alignof (T))
+static inline void *
+__arena_array_grow__(struct arena *arena, uint32_t type_size, uint32_t amount) {
+  void *res = arena_push(arena, true, type_size * amount);
+  if (res) arena->array_length += amount;
+  return res;
+}
+#define arena_array_make(capacity, T) ((T *)__arena_array_make__(capacity * sizeof (T), alignof (T)))
 #define arena_array_get_arena(array) (((struct arena *)(array)) - 1)
+#define arena_array_grow(array, amount) ((typeof (array[0]) *)__arena_array_grow__(arena_array_get_arena(array), sizeof (array[0]), amount))
 #define arena_array_push(array, value) do { \
-  struct arena *arena = arena_array_get_arena(array); \
-  typeof(array[0]) *p = arena_push_type(arena, true, typeof (array[0])); \
+  typeof(array[0]) *p = arena_array_grow(array, 1); \
   if (p) { \
     *p = value; \
-    arena->array_length++; \
-  }\
+  } \
 } while (0)
 #define arena_array_pop(array) do { \
   struct arena *arena = arena_array_get_arena(array); \

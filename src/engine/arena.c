@@ -233,4 +233,3 @@ arena_scratch_end(struct arena *arena, struct arena_state *state) {
   *state = (struct arena_state) { 0 };
   return true;
 }
-
