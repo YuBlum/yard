@@ -157,7 +157,7 @@ for entity, body in entities_ir.items():
         entities_c += "  }\n"
     else:
         entities_c += "  if (layout->has_" + entity + ") {\n"
-        entities_c += "    g_entities." + entity + "_data = arena_push_type(g_entities.arena, false, " + typ + ");\n"
+        entities_c += "    g_entities." + entity + "_data = arena_push_type(g_entities.arena, false, struct " + entity + "_data);\n"
         entities_c += "    if (!g_entities." + entity + "_data) {\n"
         entities_c += "      log_errorl(\"couldn't allocate " + entity + " data\");\n"
         entities_c += "      return false;\n"

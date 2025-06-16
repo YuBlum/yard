@@ -1,11 +1,9 @@
 #include "engine/arena.h"
 #include "game/entities.h"
-#include "game/something.h"
 #include "game/player.h"
 
 struct entities {
   struct arena *arena;
-  struct something_data something_data;
   struct player_data *player_data;
 };
 
@@ -25,54 +23,8 @@ entities_make(void) {
 bool
 entities_layout_set(const struct entities_layout *layout) {
   if (!arena_clear(g_entities.arena)) { log_errorl("couldn't clear entities arena"); return false; }
-  if (layout->something_amount) {
-    g_entities.something_data.amount = layout->something_amount;
-    g_entities.something_data.position = arena_push_array(g_entities.arena, false, struct v2, layout->something_amount);
-    if (!g_entities.something_data.position) {
-      log_errorl("couldn't allocate something position data");
-      return false;
-    }
-    g_entities.something_data.size = arena_push_array(g_entities.arena, false, struct v2, layout->something_amount);
-    if (!g_entities.something_data.size) {
-      log_errorl("couldn't allocate something size data");
-      return false;
-    }
-    g_entities.something_data.texture_position = arena_push_array(g_entities.arena, false, struct v2u, layout->something_amount);
-    if (!g_entities.something_data.texture_position) {
-      log_errorl("couldn't allocate something texture_position data");
-      return false;
-    }
-    g_entities.something_data.texture_size = arena_push_array(g_entities.arena, false, struct v2u, layout->something_amount);
-    if (!g_entities.something_data.texture_size) {
-      log_errorl("couldn't allocate something texture_size data");
-      return false;
-    }
-    g_entities.something_data.color = arena_push_array(g_entities.arena, false, struct color, layout->something_amount);
-    if (!g_entities.something_data.color) {
-      log_errorl("couldn't allocate something color data");
-      return false;
-    }
-    g_entities.something_data.opacity = arena_push_array(g_entities.arena, false, float, layout->something_amount);
-    if (!g_entities.something_data.opacity) {
-      log_errorl("couldn't allocate something opacity data");
-      return false;
-    }
-    g_entities.something_data.depth = arena_push_array(g_entities.arena, false, float, layout->something_amount);
-    if (!g_entities.something_data.depth) {
-      log_errorl("couldn't allocate something depth data");
-      return false;
-    }
-    g_entities.something_data.direction = arena_push_array(g_entities.arena, false, struct v2, layout->something_amount);
-    if (!g_entities.something_data.direction) {
-      log_errorl("couldn't allocate something direction data");
-      return false;
-    }
-    something_init(&g_entities.something_data);
-  } else {
-    g_entities.something_data.amount = 0;
-  }
   if (layout->has_player) {
-    g_entities.player_data = arena_push_type(g_entities.arena, false, uint32_t);
+    g_entities.player_data = arena_push_type(g_entities.arena, false, struct player_data);
     if (!g_entities.player_data) {
       log_errorl("couldn't allocate player data");
       return false;
@@ -92,7 +44,6 @@ entities_update(float dt) {
     return;
   }
 #endif
-  if (g_entities.something_data.amount) something_update(&g_entities.something_data, dt);
   if (g_entities.player_data) player_update(g_entities.player_data, dt);
 }
 
@@ -104,6 +55,5 @@ entities_render(void) {
     return;
   }
 #endif
-  if (g_entities.something_data.amount) something_render(&g_entities.something_data);
   if (g_entities.player_data) player_render(g_entities.player_data);
 }

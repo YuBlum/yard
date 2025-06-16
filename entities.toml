@@ -4,10 +4,6 @@
 component = [ "renderable" ]
 exclude   = [ "color", "opacity", "size", "texture_size" ]
 
-[entity.something]
-component = [ "renderable" ]
-field.direction = "struct v2"
-
 [component.renderable]
 position         = "struct v2"
 size             = "struct v2"

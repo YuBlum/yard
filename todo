@@ -1,5 +1,5 @@
-stereo sound and panning (for in game sound effects)
 hot reloading
+stereo sound and panning (for in game sound effects)
 3d (?)
 better player movement
 items (?)
@@ -11,3 +11,6 @@ turn based actually
 uncapped quad rendering
 parallelism on systems
 give the user the ability to select a desired audio device
+ms windows support
+post-processing
+particle system

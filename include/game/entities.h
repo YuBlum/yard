@@ -2,7 +2,6 @@
 #define __ENTITIES_H__
 
 struct entities_layout {
-  uint32_t something_amount;
   bool has_player;
 };
 
