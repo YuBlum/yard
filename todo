@@ -10,3 +10,5 @@ weapons (?)
 turn based actually
 uncapped quad rendering
 parallelism on systems
+stereo sound and panning (for in game sound effects)
+give the user the ability to select a desired audio device

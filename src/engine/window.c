@@ -64,6 +64,11 @@ window_make(uint32_t width, uint32_t height) {
 }
 
 void
+window_destroy(void) {
+  glfwTerminate();
+}
+
+void
 window_close(void) {
   (void)glfwSetWindowShouldClose(g_window.handle, true);
 }

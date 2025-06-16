@@ -2,6 +2,7 @@
 #include <time.h>
 #include "engine/arena.h"
 #include "engine/window.h"
+#include "engine/mixer.h"
 #include "engine/renderer.h"
 #include "game/entities.h"
 #include "game/player.h"
@@ -18,6 +19,7 @@ main(void) {
     return 1;
   }
   if (!window_make(WINDOW_W, WINDOW_H)) return 1;
+  if (!mixer_make()) return 1;
   if (!renderer_make()) return 1;
   if (!entities_make()) return 1;
   if (!entities_layout_set(&(struct entities_layout) {
@@ -31,5 +33,7 @@ main(void) {
     renderer_submit();
     arena_clear(tmp_arena);
   }
+  mixer_destroy();
+  window_destroy();
   return 0;
 }
