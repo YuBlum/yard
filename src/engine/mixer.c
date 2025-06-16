@@ -11,10 +11,10 @@ struct sound {
 };
 
 struct mixer {
-  ma_mutex lock;
-  ma_device device;
   struct arena *tmp_buffer_arena;
   struct sound *sounds;
+  ma_mutex lock;
+  ma_device device;
   float volume;
 };
 #define TMP_BUFFER_ARENA_CAPACITY (1ul<<20)
@@ -63,6 +63,7 @@ mixer_make(void) {
   config.playback.channels = 1;
   config.sampleRate        = 48000;
   config.dataCallback      = data_callback;
+  log_warnl("for now all sounds and main audio device are loaded as monochannel. add stereo support");
   if (ma_device_init(0, &config, &g_mixer.device) != MA_SUCCESS) {
     log_errorl("couldn't obtain device for the mixer");
     return false;
@@ -111,6 +112,7 @@ mixer_sound_reserve(const char *sound_file_path, bool active_on_start, bool loop
   struct sound *sound = arena_array_grow(g_mixer.sounds, 1);
   if (!sound) {
     log_errorlf("%s: couldn't allocate sound", __func__);
+    ma_mutex_unlock(&g_mixer.lock);
     return (struct sound_result) { 0, false };
   }
   ma_decoder_config decoder_config = ma_decoder_config_init(
@@ -120,6 +122,8 @@ mixer_sound_reserve(const char *sound_file_path, bool active_on_start, bool loop
   );
   if (ma_decoder_init_file(sound_file_path, &decoder_config, &sound->decoder) != MA_SUCCESS) {
     log_errorlf("%s: couldn't initiate sound decoder", __func__);
+    arena_array_pop(g_mixer.sounds);
+    ma_mutex_unlock(&g_mixer.lock);
     return (struct sound_result) { 0, false };
   }
   if (loop) {
@@ -139,12 +143,14 @@ mixer_sound_play(uint32_t sound_handle) {
   ma_mutex_lock(&g_mixer.lock);
   if (sound_handle >= arena_array_length(g_mixer.sounds)) {
     log_errorlf("%s: invalid sound handle", __func__);
+    ma_mutex_unlock(&g_mixer.lock);
     return false;
   }
   struct sound *sound = &g_mixer.sounds[sound_handle];
   sound->active = true;
   if (ma_data_source_seek_to_pcm_frame(&sound->decoder, 0) != MA_SUCCESS) {
     log_errorlf("%s: couldn't reset sound", __func__);
+    ma_mutex_unlock(&g_mixer.lock);
     return false;
   }
   ma_mutex_unlock(&g_mixer.lock);
@@ -156,6 +162,7 @@ mixer_sound_pause(uint32_t sound_handle) {
   ma_mutex_lock(&g_mixer.lock);
   if (sound_handle >= arena_array_length(g_mixer.sounds)) {
     log_errorlf("%s: invalid sound handle", __func__);
+    ma_mutex_unlock(&g_mixer.lock);
     return false;
   }
   g_mixer.sounds[sound_handle].active = false;
@@ -168,6 +175,7 @@ mixer_sound_resume(uint32_t sound_handle) {
   ma_mutex_lock(&g_mixer.lock);
   if (sound_handle >= arena_array_length(g_mixer.sounds)) {
     log_errorlf("%s: invalid sound handle", __func__);
+    ma_mutex_unlock(&g_mixer.lock);
     return false;
   }
   g_mixer.sounds[sound_handle].active = true;
@@ -180,6 +188,7 @@ mixer_sound_toggle(uint32_t sound_handle) {
   ma_mutex_lock(&g_mixer.lock);
   if (sound_handle >= arena_array_length(g_mixer.sounds)) {
     log_errorlf("%s: invalid sound handle", __func__);
+    ma_mutex_unlock(&g_mixer.lock);
     return false;
   }
   g_mixer.sounds[sound_handle].active = !g_mixer.sounds[sound_handle].active;
@@ -192,6 +201,7 @@ mixer_sound_set_volume(uint32_t sound_handle, float new_volume) {
   ma_mutex_lock(&g_mixer.lock);
   if (sound_handle >= arena_array_length(g_mixer.sounds)) {
     log_errorlf("%s: invalid sound handle", __func__);
+    ma_mutex_unlock(&g_mixer.lock);
     return false;
   }
   if (new_volume > 1.0f) new_volume = 1.0f;
@@ -203,11 +213,15 @@ mixer_sound_set_volume(uint32_t sound_handle, float new_volume) {
 
 float
 mixer_sound_get_volume(uint32_t sound_handle) {
+  ma_mutex_lock(&g_mixer.lock);
   if (sound_handle >= arena_array_length(g_mixer.sounds)) {
     log_errorlf("%s: invalid sound handle", __func__);
+    ma_mutex_unlock(&g_mixer.lock);
     return 0.0f;
   }
-  return g_mixer.sounds[sound_handle].volume;
+  float volume = g_mixer.sounds[sound_handle].volume;
+  ma_mutex_unlock(&g_mixer.lock);
+  return volume;
 }
 
 bool
@@ -215,6 +229,7 @@ mixer_sound_inc_volume(uint32_t sound_handle, float amount) {
   ma_mutex_lock(&g_mixer.lock);
   if (sound_handle >= arena_array_length(g_mixer.sounds)) {
     log_errorlf("%s: invalid sound handle", __func__);
+    ma_mutex_unlock(&g_mixer.lock);
     return false;
   }
   g_mixer.sounds[sound_handle].volume += amount;
@@ -228,6 +243,7 @@ mixer_sound_dec_volume(uint32_t sound_handle, float amount) {
   ma_mutex_lock(&g_mixer.lock);
   if (sound_handle >= arena_array_length(g_mixer.sounds)) {
     log_errorlf("%s: invalid sound handle", __func__);
+    ma_mutex_unlock(&g_mixer.lock);
     return false;
   }
   g_mixer.sounds[sound_handle].volume -= amount;
@@ -258,7 +274,10 @@ mixer_set_volume(float new_volume) {
 
 float
 mixer_get_volume(void) {
-  return g_mixer.volume;
+  ma_mutex_lock(&g_mixer.lock);
+  float volume = g_mixer.volume;
+  ma_mutex_unlock(&g_mixer.lock);
+  return volume;
 }
 
 void

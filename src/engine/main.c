@@ -58,8 +58,6 @@ main(void) {
       if (window_is_key_press(K_DOWN)) (void)mixer_sound_dec_volume(music, 0.05f);
       if (window_is_key_press(K_LEFT)) (void)mixer_sound_set_volume(music, 0.5f);
     }
-    log_infolf("music: %.f%%", mixer_sound_get_volume(music) * 100);
-    log_infolf("mixer: %.f%%", mixer_get_volume() * 100);
     entities_render();
     renderer_submit();
     arena_clear(tmp_arena);
