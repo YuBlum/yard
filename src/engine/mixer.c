@@ -32,7 +32,7 @@ data_callback(ma_device *device, void *output_buffer, const void *input_buffer, 
   for (uint32_t i = 0; i < sounds_amount; i++) {
     if (!g_mixer.sounds[i].active) continue;
     (void)memset(tmp_buffer, 0, frame_count * sizeof (float));
-    ma_result res = ma_decoder_read_pcm_frames(&g_mixer.sounds[i].decoder, tmp_buffer, frame_count, 0);
+    ma_result res = ma_data_source_read_pcm_frames(&g_mixer.sounds[i].decoder, tmp_buffer, frame_count, 0);
     if (res != MA_SUCCESS) {
       g_mixer.sounds[i].active = false;
       continue;
@@ -105,6 +105,11 @@ mixer_sound_reserve(const char *sound_file_path, bool active_on_start, bool loop
   if (ma_decoder_init_file(sound_file_path, &decoder_config, &sound->decoder) != MA_SUCCESS) {
     log_errorlf("%s: couldn't initiate sound decoder", __func__);
     return (struct sound_result) { 0, false };
+  }
+  if (loop) {
+    if (ma_data_source_set_looping(&sound->decoder, true) != MA_SUCCESS) {
+      log_warnlf("%s: couldn't set sound to loop", __func__);
+    }
   }
   sound->active = active_on_start;
   return (struct sound_result) { arena_array_length(g_mixer.sounds) - 1, true };
