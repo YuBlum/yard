@@ -13,7 +13,7 @@
 struct vertex {
   struct v2    position;
   struct v2    texcoord;
-  struct color blendcol;
+  struct color color;
 };
 
 #define QUAD_CAPACITY 10000
@@ -197,7 +197,7 @@ renderer_make(void) {
   glEnableVertexAttribArray(2);
   glVertexAttribPointer(0, 2, GL_FLOAT, false, sizeof (struct vertex), (void *)offsetof (struct vertex, position));
   glVertexAttribPointer(1, 2, GL_FLOAT, false, sizeof (struct vertex), (void *)offsetof (struct vertex, texcoord));
-  glVertexAttribPointer(2, 3, GL_FLOAT, false, sizeof (struct vertex), (void *)offsetof (struct vertex, blendcol));
+  glVertexAttribPointer(2, 3, GL_FLOAT, false, sizeof (struct vertex), (void *)offsetof (struct vertex, color));
   log_infol("vao, vbo and ibo created successfully");
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
@@ -261,10 +261,10 @@ renderer_request_quads(uint32_t amount, const struct v2 positions[amount], const
     g_renderer.vertices[g_renderer.quads_amount + i].v[3].texcoord = v2_add(tpos, V2(0.0f  , 0.0f  ));
   }
   for (uint32_t i = 0; i < amount; i++) {
-    g_renderer.vertices[g_renderer.quads_amount + i].v[0].blendcol = colors[i];
-    g_renderer.vertices[g_renderer.quads_amount + i].v[1].blendcol = colors[i];
-    g_renderer.vertices[g_renderer.quads_amount + i].v[2].blendcol = colors[i];
-    g_renderer.vertices[g_renderer.quads_amount + i].v[3].blendcol = colors[i];
+    g_renderer.vertices[g_renderer.quads_amount + i].v[0].color = colors[i];
+    g_renderer.vertices[g_renderer.quads_amount + i].v[1].color = colors[i];
+    g_renderer.vertices[g_renderer.quads_amount + i].v[2].color = colors[i];
+    g_renderer.vertices[g_renderer.quads_amount + i].v[3].color = colors[i];
   }
   for (uint32_t i = 0; i < amount; i++) {
     g_renderer.indices_to_sort[g_renderer.quads_amount + i].depth = depths[i];
@@ -293,10 +293,10 @@ renderer_request_quad(struct v2 position, struct v2 size, struct v2u texture_pos
   vertices[1].texcoord = v2_add(tpos, V2(tsiz.x, tsiz.y));
   vertices[2].texcoord = v2_add(tpos, V2(tsiz.x, 0.0f  ));
   vertices[3].texcoord = v2_add(tpos, V2(0.0f  , 0.0f  ));
-  vertices[0].blendcol = color;
-  vertices[1].blendcol = color;
-  vertices[2].blendcol = color;
-  vertices[3].blendcol = color;
+  vertices[0].color = color;
+  vertices[1].color = color;
+  vertices[2].color = color;
+  vertices[3].color = color;
   g_renderer.indices_to_sort[g_renderer.quads_amount].depth = depth;
   g_renderer.indices_to_sort[g_renderer.quads_amount].start = g_renderer.quads_amount * 4;
   g_renderer.quads_amount++;
