@@ -31,12 +31,14 @@ data_callback(ma_device *device, void *output_buffer, const void *input_buffer, 
   uint32_t sounds_amount = arena_array_length(g_mixer.sounds);
   for (uint32_t i = 0; i < sounds_amount; i++) {
     if (!g_mixer.sounds[i].active) continue;
-    (void)memset(tmp_buffer, 0, frame_count * sizeof (float));
-    ma_result res = ma_data_source_read_pcm_frames(&g_mixer.sounds[i].decoder, tmp_buffer, frame_count, 0);
+    (void)memset(tmp_buffer, 0, frame_count * sizeof (float)); 
+    ma_uint64 frames_read;
+    ma_result res = ma_data_source_read_pcm_frames(&g_mixer.sounds[i].decoder, tmp_buffer, frame_count, &frames_read);
     if (res != MA_SUCCESS) {
       g_mixer.sounds[i].active = false;
       continue;
     }
+    if (frames_read < frame_count) g_mixer.sounds[i].active = false;
     for (uint32_t sample = 0; sample < frame_count; sample++) {
       out[sample] += tmp_buffer[sample];
       if (out[sample] > 1.0f) out[sample] = 1.0f;
@@ -91,7 +93,6 @@ mixer_destroy(void) {
 struct sound_result
 mixer_sound_reserve(const char *sound_file_path, bool active_on_start, bool loop) {
   log_warnlf("%s: this is not thread-safe yet", __func__);
-  if (loop) log_warnlf("%s: not loopable yet", __func__);
   struct sound *sound = arena_array_grow(g_mixer.sounds, 1);
   if (!sound) {
     log_errorlf("%s: couldn't allocate sound", __func__);
@@ -113,6 +114,21 @@ mixer_sound_reserve(const char *sound_file_path, bool active_on_start, bool loop
   }
   sound->active = active_on_start;
   return (struct sound_result) { arena_array_length(g_mixer.sounds) - 1, true };
+}
+
+bool
+mixer_sound_play(uint32_t sound_handle) {
+  if (sound_handle >= arena_array_length(g_mixer.sounds)) {
+    log_errorlf("%s: invalid sound handle", __func__);
+    return false;
+  }
+  struct sound *sound = &g_mixer.sounds[sound_handle];
+  sound->active = true;
+  if (ma_data_source_seek_to_pcm_frame(&sound->decoder, 0) != MA_SUCCESS) {
+    log_errorlf("%s: couldn't reset sound", __func__);
+    return false;
+  }
+  return true;
 }
 
 void

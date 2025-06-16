@@ -26,11 +26,14 @@ main(void) {
     .has_player = true,
     .something_amount = 1000,
   })) return 1; // TODO: remove this from here
-  (void)mixer_sound_reserve("assets/thejester.wav", false, true); // TODO: remove this from here
-  (void)mixer_sound_reserve("assets/vgdeathsound.wav", true, true); // TODO: remove this from here
+  (void)mixer_sound_reserve("assets/thejester.wav", true, true); // TODO: remove this from here
+  uint32_t death_sound = mixer_sound_reserve("assets/vgdeathsound.wav", false, false).sound_handle; // TODO: remove this from here
+  uint32_t menu_sound = mixer_sound_reserve("assets/vgmenuselect.wav", false, false).sound_handle; // TODO: remove this from here
   while (window_is_running()) {
     if (window_is_key_down(K_EXIT)) window_close();
     entities_update(window_get_delta_time());
+    if (window_is_key_press(K_A)) (void)mixer_sound_play(death_sound);
+    if (window_is_key_press(K_B)) (void)mixer_sound_play(menu_sound);
     entities_render();
     renderer_submit();
     arena_clear(tmp_arena);
