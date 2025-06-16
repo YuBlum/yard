@@ -27,6 +27,7 @@ player_render(struct player_data *self) {
     self->texture_position,
     V2U(16, 16),
     WHITE,
-    0.0f
+    1.0f,
+    1.0f
   );
 }

@@ -52,6 +52,11 @@ entities_layout_set(const struct entities_layout *layout) {
       log_errorl("couldn't allocate something color data");
       return false;
     }
+    g_entities.something_data.opacity = arena_push_array(g_entities.arena, false, float, layout->something_amount);
+    if (!g_entities.something_data.opacity) {
+      log_errorl("couldn't allocate something opacity data");
+      return false;
+    }
     g_entities.something_data.depth = arena_push_array(g_entities.arena, false, float, layout->something_amount);
     if (!g_entities.something_data.depth) {
       log_errorl("couldn't allocate something depth data");

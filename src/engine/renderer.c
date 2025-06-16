@@ -14,6 +14,7 @@ struct vertex {
   struct v2    position;
   struct v2    texcoord;
   struct color color;
+  float        opacity;
 };
 
 #define QUAD_CAPACITY 10000
@@ -195,9 +196,11 @@ renderer_make(void) {
   glEnableVertexAttribArray(0);
   glEnableVertexAttribArray(1);
   glEnableVertexAttribArray(2);
+  glEnableVertexAttribArray(3);
   glVertexAttribPointer(0, 2, GL_FLOAT, false, sizeof (struct vertex), (void *)offsetof (struct vertex, position));
   glVertexAttribPointer(1, 2, GL_FLOAT, false, sizeof (struct vertex), (void *)offsetof (struct vertex, texcoord));
   glVertexAttribPointer(2, 3, GL_FLOAT, false, sizeof (struct vertex), (void *)offsetof (struct vertex, color));
+  glVertexAttribPointer(3, 1, GL_FLOAT, false, sizeof (struct vertex), (void *)offsetof (struct vertex, opacity));
   log_infol("vao, vbo and ibo created successfully");
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
@@ -235,7 +238,7 @@ renderer_submit(void) {
 }
 
 void
-renderer_request_quads(uint32_t amount, const struct v2 positions[amount], const struct v2 sizes[amount], const struct v2u texture_positions[amount], const struct v2u texture_sizes[amount], const struct color colors[amount], const float depths[amount]) {
+renderer_request_quads(uint32_t amount, const struct v2 positions[amount], const struct v2 sizes[amount], const struct v2u texture_positions[amount], const struct v2u texture_sizes[amount], const struct color colors[amount], const float opacities[amount], const float depths[amount]) {
 #if DEV
   if (g_renderer.quads_amount + amount >= QUAD_CAPACITY) {
     log_warnlf("%s: trying to request to much quads for rendering. increase QUAD_CAPACITY", __func__);
@@ -245,6 +248,7 @@ renderer_request_quads(uint32_t amount, const struct v2 positions[amount], const
   struct v2 size_half;
   struct v2 tpos;
   struct v2 tsiz;
+  static_assert(sizeof (struct vertex) == sizeof (float) * 8);
   for (uint32_t i = 0; i < amount; i++) {
     size_half = v2_muls(sizes[i], 0.5f);
     g_renderer.vertices[g_renderer.quads_amount + i].v[0].position = v2_add(positions[i], V2(-size_half.x, -size_half.y));
@@ -267,6 +271,12 @@ renderer_request_quads(uint32_t amount, const struct v2 positions[amount], const
     g_renderer.vertices[g_renderer.quads_amount + i].v[3].color = colors[i];
   }
   for (uint32_t i = 0; i < amount; i++) {
+    g_renderer.vertices[g_renderer.quads_amount + i].v[0].opacity = opacities[i];
+    g_renderer.vertices[g_renderer.quads_amount + i].v[1].opacity = opacities[i];
+    g_renderer.vertices[g_renderer.quads_amount + i].v[2].opacity = opacities[i];
+    g_renderer.vertices[g_renderer.quads_amount + i].v[3].opacity = opacities[i];
+  }
+  for (uint32_t i = 0; i < amount; i++) {
     g_renderer.indices_to_sort[g_renderer.quads_amount + i].depth = depths[i];
     g_renderer.indices_to_sort[g_renderer.quads_amount + i].start = (g_renderer.quads_amount + i) * 4;
   }
@@ -274,13 +284,14 @@ renderer_request_quads(uint32_t amount, const struct v2 positions[amount], const
 }
 
 void
-renderer_request_quad(struct v2 position, struct v2 size, struct v2u texture_position, struct v2u texture_size, struct color color, float depth) {
+renderer_request_quad(struct v2 position, struct v2 size, struct v2u texture_position, struct v2u texture_size, struct color color, float opacity, float depth) {
 #if DEV
   if (g_renderer.quads_amount + 1 >= QUAD_CAPACITY) {
     log_warnlf("%s: trying to request to much quads for rendering. increase QUAD_CAPACITY", __func__);
     return;
   }
 #endif
+  static_assert(sizeof (struct vertex) == sizeof (float) * 8);
   struct v2 size_half = v2_muls(size, 0.5f);
   struct v2 tpos = v2_muls(V2U_V2(texture_position), ATLAS_PIXEL);
   struct v2 tsiz = v2_muls(V2U_V2(texture_size), ATLAS_PIXEL);
@@ -297,6 +308,10 @@ renderer_request_quad(struct v2 position, struct v2 size, struct v2u texture_pos
   vertices[1].color = color;
   vertices[2].color = color;
   vertices[3].color = color;
+  vertices[0].opacity = opacity;
+  vertices[1].opacity = opacity;
+  vertices[2].opacity = opacity;
+  vertices[3].opacity = opacity;
   g_renderer.indices_to_sort[g_renderer.quads_amount].depth = depth;
   g_renderer.indices_to_sort[g_renderer.quads_amount].start = g_renderer.quads_amount * 4;
   g_renderer.quads_amount++;

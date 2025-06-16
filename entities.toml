@@ -2,7 +2,7 @@
 
 [entity.unique.player]
 component = [ "renderable" ]
-exclude   = [ "color", "size", "texture_size" ]
+exclude   = [ "color", "opacity", "size", "texture_size" ]
 
 [entity.something]
 component = [ "renderable" ]
@@ -14,5 +14,6 @@ size             = "struct v2"
 texture_position = "struct v2u"
 texture_size     = "struct v2u"
 color            = "struct color"
+opacity          = "float"
 depth            = "float"
 

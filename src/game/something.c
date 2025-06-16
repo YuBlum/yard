@@ -24,6 +24,9 @@ something_init(struct something_data *self) {
     self->direction[i].x = cosf(angle) * speed;
     self->direction[i].y = sinf(angle) * speed;
   }
+  for (uint32_t i = 0; i < self->amount; i++) {
+    self->opacity[i] = 0.3f;
+  }
 }
 
 void
@@ -49,6 +52,7 @@ something_render(struct something_data *self) {
     self->texture_position,
     self->texture_size,
     self->color,
+    self->opacity,
     self->depth
   );
 }

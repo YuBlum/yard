@@ -10,6 +10,7 @@ struct something_data {
   struct v2u *texture_position;
   struct v2u *texture_size;
   struct color *color;
+  float *opacity;
   float *depth;
   struct v2 *direction;
   uint32_t amount;
