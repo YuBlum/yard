@@ -147,6 +147,42 @@ mixer_sound_play(uint32_t sound_handle) {
   return true;
 }
 
+bool
+mixer_sound_pause(uint32_t sound_handle) {
+  ma_mutex_lock(&g_mixer.lock);
+  if (sound_handle >= arena_array_length(g_mixer.sounds)) {
+    log_errorlf("%s: invalid sound handle", __func__);
+    return false;
+  }
+  g_mixer.sounds[sound_handle].active = false;
+  ma_mutex_unlock(&g_mixer.lock);
+  return true;
+}
+
+bool
+mixer_sound_resume(uint32_t sound_handle) {
+  ma_mutex_lock(&g_mixer.lock);
+  if (sound_handle >= arena_array_length(g_mixer.sounds)) {
+    log_errorlf("%s: invalid sound handle", __func__);
+    return false;
+  }
+  g_mixer.sounds[sound_handle].active = true;
+  ma_mutex_unlock(&g_mixer.lock);
+  return true;
+}
+
+bool
+mixer_sound_toggle(uint32_t sound_handle) {
+  ma_mutex_lock(&g_mixer.lock);
+  if (sound_handle >= arena_array_length(g_mixer.sounds)) {
+    log_errorlf("%s: invalid sound handle", __func__);
+    return false;
+  }
+  g_mixer.sounds[sound_handle].active = !g_mixer.sounds[sound_handle].active;
+  ma_mutex_unlock(&g_mixer.lock);
+  return true;
+}
+
 void
 mixer_clear_sounds(void) {
   ma_mutex_lock(&g_mixer.lock);
