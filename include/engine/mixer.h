@@ -9,7 +9,7 @@ struct sound_result {
   bool ok;
 };
 
-struct sound_result mixer_sound_reserve(const char *sound_file_path);
+struct sound_result mixer_sound_reserve(const char *sound_file_path, bool active_on_start, bool loop);
 void mixer_clear_sounds(void);
 
 #endif/*__MIXER_H__*/

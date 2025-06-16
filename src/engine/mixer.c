@@ -89,7 +89,9 @@ mixer_destroy(void) {
 }
 
 struct sound_result
-mixer_sound_reserve(const char *sound_file_path) {
+mixer_sound_reserve(const char *sound_file_path, bool active_on_start, bool loop) {
+  log_warnlf("%s: this is not thread-safe yet", __func__);
+  if (loop) log_warnlf("%s: not loopable yet", __func__);
   struct sound *sound = arena_array_grow(g_mixer.sounds, 1);
   if (!sound) {
     log_errorlf("%s: couldn't allocate sound", __func__);
@@ -104,11 +106,15 @@ mixer_sound_reserve(const char *sound_file_path) {
     log_errorlf("%s: couldn't initiate sound decoder", __func__);
     return (struct sound_result) { 0, false };
   }
-  sound->active = true;
+  sound->active = active_on_start;
   return (struct sound_result) { arena_array_length(g_mixer.sounds) - 1, true };
 }
 
 void
 mixer_clear_sounds(void) {
+  uint32_t sounds_length = arena_array_length(g_mixer.sounds);
+  for (uint32_t i = 0; i < sounds_length; i++) {
+    (void)ma_decoder_uninit(&g_mixer.sounds[i].decoder);
+  }
   arena_array_clear(g_mixer.sounds);
 }
