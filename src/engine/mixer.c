@@ -10,6 +10,7 @@ struct sound {
 };
 
 struct mixer {
+  ma_mutex lock;
   ma_device device;
   struct arena *tmp_buffer_arena;
   struct sound *sounds;
@@ -28,6 +29,7 @@ data_callback(ma_device *device, void *output_buffer, const void *input_buffer, 
     return;
   }
   float *out = output_buffer;
+  ma_mutex_lock(&g_mixer.lock);
   uint32_t sounds_amount = arena_array_length(g_mixer.sounds);
   for (uint32_t i = 0; i < sounds_amount; i++) {
     if (!g_mixer.sounds[i].active) continue;
@@ -45,6 +47,7 @@ data_callback(ma_device *device, void *output_buffer, const void *input_buffer, 
       if (out[sample] < -1.0f) out[sample] = -1.0f;
     }
   }
+  ma_mutex_unlock(&g_mixer.lock);
   if (!arena_clear(g_mixer.tmp_buffer_arena)) {
     log_errorl("couldn't clear mixer's temporary buffer arena");
   }
@@ -76,9 +79,16 @@ mixer_make(void) {
     return false;
   }
   log_infol("mixer sounds buffer created");
+  if (ma_mutex_init(&g_mixer.lock) != MA_SUCCESS) {
+    ma_device_uninit(&g_mixer.device);
+    log_infol("couldn't initialize mixer lock");
+    return false;
+  }
+  log_infol("mixer mutex lock created");
   if (ma_device_start(&g_mixer.device) != MA_SUCCESS) {
     ma_device_uninit(&g_mixer.device);
     log_errorl("couldn't start sound mixer");
+    return false;
   }
   log_infol("sound mixer started");
   log_infol("mixer creation complete!");
@@ -87,12 +97,14 @@ mixer_make(void) {
 
 void
 mixer_destroy(void) {
+  mixer_clear_sounds();
+  ma_mutex_uninit(&g_mixer.lock);
   ma_device_uninit(&g_mixer.device);
 }
 
 struct sound_result
 mixer_sound_reserve(const char *sound_file_path, bool active_on_start, bool loop) {
-  log_warnlf("%s: this is not thread-safe yet", __func__);
+  ma_mutex_lock(&g_mixer.lock);
   struct sound *sound = arena_array_grow(g_mixer.sounds, 1);
   if (!sound) {
     log_errorlf("%s: couldn't allocate sound", __func__);
@@ -113,11 +125,14 @@ mixer_sound_reserve(const char *sound_file_path, bool active_on_start, bool loop
     }
   }
   sound->active = active_on_start;
-  return (struct sound_result) { arena_array_length(g_mixer.sounds) - 1, true };
+  struct sound_result res = { arena_array_length(g_mixer.sounds) - 1, true };
+  ma_mutex_unlock(&g_mixer.lock);
+  return res;
 }
 
 bool
 mixer_sound_play(uint32_t sound_handle) {
+  ma_mutex_lock(&g_mixer.lock);
   if (sound_handle >= arena_array_length(g_mixer.sounds)) {
     log_errorlf("%s: invalid sound handle", __func__);
     return false;
@@ -128,14 +143,17 @@ mixer_sound_play(uint32_t sound_handle) {
     log_errorlf("%s: couldn't reset sound", __func__);
     return false;
   }
+  ma_mutex_unlock(&g_mixer.lock);
   return true;
 }
 
 void
 mixer_clear_sounds(void) {
+  ma_mutex_lock(&g_mixer.lock);
   uint32_t sounds_length = arena_array_length(g_mixer.sounds);
   for (uint32_t i = 0; i < sounds_length; i++) {
     (void)ma_decoder_uninit(&g_mixer.sounds[i].decoder);
   }
   arena_array_clear(g_mixer.sounds);
+  ma_mutex_unlock(&g_mixer.lock);
 }

@@ -25,7 +25,7 @@ something_init(struct something_data *self) {
     self->direction[i].y = sinf(angle) * speed;
   }
   for (uint32_t i = 0; i < self->amount; i++) {
-    self->opacity[i] = 0.3f;
+    self->opacity[i] = 0.25f + 0.75f * ((float)rand() / (float)RAND_MAX);
   }
 }
 

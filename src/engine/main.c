@@ -19,13 +19,28 @@ main(void) {
     return 1;
   }
   if (!window_make(WINDOW_W, WINDOW_H)) return 1;
-  if (!mixer_make()) return 1;
-  if (!renderer_make()) return 1;
-  if (!entities_make()) return 1;
+  if (!mixer_make()) {
+    window_destroy();
+    return 1;
+  }
+  if (!renderer_make()) {
+    mixer_destroy();
+    window_destroy();
+    return 1;
+  }
+  if (!entities_make()) {
+    mixer_destroy();
+    window_destroy();
+    return 1;
+  }
   if (!entities_layout_set(&(struct entities_layout) {
     .has_player = true,
     .something_amount = 1000,
-  })) return 1; // TODO: remove this from here
+  })) {
+    mixer_destroy();
+    window_destroy();
+    return 1;
+  } // TODO: remove this from here
   (void)mixer_sound_reserve("assets/thejester.wav", true, true); // TODO: remove this from here
   uint32_t death_sound = mixer_sound_reserve("assets/vgdeathsound.wav", false, false).sound_handle; // TODO: remove this from here
   uint32_t menu_sound = mixer_sound_reserve("assets/vgmenuselect.wav", false, false).sound_handle; // TODO: remove this from here
