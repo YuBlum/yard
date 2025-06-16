@@ -14,6 +14,15 @@ bool mixer_sound_play(uint32_t sound_handle);
 bool mixer_sound_pause(uint32_t sound_handle);
 bool mixer_sound_resume(uint32_t sound_handle);
 bool mixer_sound_toggle(uint32_t sound_handle);
+bool mixer_sound_set_volume(uint32_t sound_handle, float new_volume);
+float mixer_sound_get_volume(uint32_t sound_handle);
+bool mixer_sound_inc_volume(uint32_t sound_handle, float amount);
+bool mixer_sound_dec_volume(uint32_t sound_handle, float amount);
 void mixer_clear_sounds(void);
+
+void mixer_set_volume(float new_volume);
+float mixer_get_volume(void);
+void mixer_inc_volume(float amount);
+void mixer_dec_volume(float amount);
 
 #endif/*__MIXER_H__*/

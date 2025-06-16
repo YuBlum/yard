@@ -49,9 +49,17 @@ main(void) {
     entities_update(window_get_delta_time());
     if (window_is_key_press(K_A)) (void)mixer_sound_play(death_sound);
     if (window_is_key_press(K_B)) (void)mixer_sound_play(menu_sound);
-    if (window_is_key_press(K_LEFT)) (void)mixer_sound_pause(music);
-    if (window_is_key_press(K_RIGHT)) (void)mixer_sound_resume(music);
-    if (window_is_key_press(K_UP)) (void)mixer_sound_toggle(music);
+    if (window_is_key_down(K_RIGHT)) {
+      if (window_is_key_press(K_UP)) (void)mixer_inc_volume(0.05f);
+      if (window_is_key_press(K_DOWN)) (void)mixer_dec_volume(0.05f);
+      if (window_is_key_press(K_LEFT)) (void)mixer_set_volume(0.5f);
+    } else {
+      if (window_is_key_press(K_UP)) (void)mixer_sound_inc_volume(music, 0.05f);
+      if (window_is_key_press(K_DOWN)) (void)mixer_sound_dec_volume(music, 0.05f);
+      if (window_is_key_press(K_LEFT)) (void)mixer_sound_set_volume(music, 0.5f);
+    }
+    log_infolf("music: %.f%%", mixer_sound_get_volume(music) * 100);
+    log_infolf("mixer: %.f%%", mixer_get_volume() * 100);
     entities_render();
     renderer_submit();
     arena_clear(tmp_arena);

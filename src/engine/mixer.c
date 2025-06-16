@@ -6,6 +6,7 @@
 
 struct sound {
   ma_decoder decoder;
+  float volume;
   bool active;
 };
 
@@ -14,6 +15,7 @@ struct mixer {
   ma_device device;
   struct arena *tmp_buffer_arena;
   struct sound *sounds;
+  float volume;
 };
 #define TMP_BUFFER_ARENA_CAPACITY (1ul<<20)
 
@@ -42,7 +44,7 @@ data_callback(ma_device *device, void *output_buffer, const void *input_buffer, 
     }
     if (frames_read < frame_count) g_mixer.sounds[i].active = false;
     for (uint32_t sample = 0; sample < frame_count; sample++) {
-      out[sample] += tmp_buffer[sample];
+      out[sample] += g_mixer.volume * g_mixer.sounds[i].volume * tmp_buffer[sample];
       if (out[sample] > 1.0f) out[sample] = 1.0f;
       if (out[sample] < -1.0f) out[sample] = -1.0f;
     }
@@ -91,6 +93,7 @@ mixer_make(void) {
     return false;
   }
   log_infol("sound mixer started");
+  g_mixer.volume = 1.0f;
   log_infol("mixer creation complete!");
   return true;
 }
@@ -124,6 +127,7 @@ mixer_sound_reserve(const char *sound_file_path, bool active_on_start, bool loop
       log_warnlf("%s: couldn't set sound to loop", __func__);
     }
   }
+  sound->volume = 1.0f;
   sound->active = active_on_start;
   struct sound_result res = { arena_array_length(g_mixer.sounds) - 1, true };
   ma_mutex_unlock(&g_mixer.lock);
@@ -183,6 +187,55 @@ mixer_sound_toggle(uint32_t sound_handle) {
   return true;
 }
 
+bool
+mixer_sound_set_volume(uint32_t sound_handle, float new_volume) {
+  ma_mutex_lock(&g_mixer.lock);
+  if (sound_handle >= arena_array_length(g_mixer.sounds)) {
+    log_errorlf("%s: invalid sound handle", __func__);
+    return false;
+  }
+  if (new_volume > 1.0f) new_volume = 1.0f;
+  if (new_volume < 0.0f) new_volume = 0.0f;
+  g_mixer.sounds[sound_handle].volume = new_volume;
+  ma_mutex_unlock(&g_mixer.lock);
+  return true;
+}
+
+float
+mixer_sound_get_volume(uint32_t sound_handle) {
+  if (sound_handle >= arena_array_length(g_mixer.sounds)) {
+    log_errorlf("%s: invalid sound handle", __func__);
+    return 0.0f;
+  }
+  return g_mixer.sounds[sound_handle].volume;
+}
+
+bool
+mixer_sound_inc_volume(uint32_t sound_handle, float amount) {
+  ma_mutex_lock(&g_mixer.lock);
+  if (sound_handle >= arena_array_length(g_mixer.sounds)) {
+    log_errorlf("%s: invalid sound handle", __func__);
+    return false;
+  }
+  g_mixer.sounds[sound_handle].volume += amount;
+  if (g_mixer.sounds[sound_handle].volume > 1.0f) g_mixer.sounds[sound_handle].volume = 1.0f;
+  ma_mutex_unlock(&g_mixer.lock);
+  return true;
+}
+
+bool
+mixer_sound_dec_volume(uint32_t sound_handle, float amount) {
+  ma_mutex_lock(&g_mixer.lock);
+  if (sound_handle >= arena_array_length(g_mixer.sounds)) {
+    log_errorlf("%s: invalid sound handle", __func__);
+    return false;
+  }
+  g_mixer.sounds[sound_handle].volume -= amount;
+  if (g_mixer.sounds[sound_handle].volume < 0.0f) g_mixer.sounds[sound_handle].volume = 0.0f;
+  ma_mutex_unlock(&g_mixer.lock);
+  return true;
+}
+
 void
 mixer_clear_sounds(void) {
   ma_mutex_lock(&g_mixer.lock);
@@ -191,5 +244,35 @@ mixer_clear_sounds(void) {
     (void)ma_decoder_uninit(&g_mixer.sounds[i].decoder);
   }
   arena_array_clear(g_mixer.sounds);
+  ma_mutex_unlock(&g_mixer.lock);
+}
+
+void
+mixer_set_volume(float new_volume) {
+  ma_mutex_lock(&g_mixer.lock);
+  if (new_volume > 1.0f) new_volume = 1.0f;
+  if (new_volume < 0.0f) new_volume = 0.0f;
+  g_mixer.volume = new_volume;
+  ma_mutex_unlock(&g_mixer.lock);
+}
+
+float
+mixer_get_volume(void) {
+  return g_mixer.volume;
+}
+
+void
+mixer_inc_volume(float amount) {
+  ma_mutex_lock(&g_mixer.lock);
+  g_mixer.volume += amount;
+  if (g_mixer.volume > 1.0f) g_mixer.volume = 1.0f;
+  ma_mutex_unlock(&g_mixer.lock);
+}
+
+void
+mixer_dec_volume(float amount) {
+  ma_mutex_lock(&g_mixer.lock);
+  g_mixer.volume -= amount;
+  if (g_mixer.volume < 0.0f) g_mixer.volume = 0.0f;
   ma_mutex_unlock(&g_mixer.lock);
 }
